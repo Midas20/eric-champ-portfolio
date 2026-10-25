@@ -1,0 +1,594 @@
+{
+  "_note": "All text and data for the portfolio. Edit online at /edit/<your key>. Entries with sample: true show an 'example' tag on the page.",
+  "meta": {
+    "name": "Eric Champ",
+    "initials": "EC",
+    "role": "Full-stack & AI Engineer",
+    "title": "Eric Champ — Full-stack & AI Engineer",
+    "description": "Eric Champ builds production-shaped systems end to end: RAG pipelines, ML scoring, real-time Go and Rust services, cross-border commerce, dataviz and native iOS."
+  },
+  "config": {
+    "email": "you@example.com",
+    "github": "https://github.com/sandwaveon-spec",
+    "linkedin": "",
+    "allProjectsUrl": "https://shiplayer.pages.dev/work/"
+  },
+  "nav": {
+    "work": "Work",
+    "experience": "Experience",
+    "skills": "Skills",
+    "about": "About",
+    "contact": "Contact",
+    "cta": "Get in touch"
+  },
+  "hero": {
+    "eyebrow": "Available to join your team",
+    "titleLine1": "Software that ships,",
+    "titleLine2": "across every layer.",
+    "lede": "I join teams to get real products out the door: the ML core, the services around it and the interface on top. I measure my work by what the team delivers, so everything I write is tested, readable and ready for the next engineer to build on.",
+    "ctaPrimary": "See the work",
+    "ctaSecondary": "GitHub ↗",
+    "stats": [
+      {
+        "value": 154,
+        "suffix": "",
+        "label": "public repositories on GitHub ↗",
+        "linkToGithub": true
+      },
+      {
+        "value": 10,
+        "suffix": "+",
+        "label": "years inside product teams",
+        "linkToGithub": false
+      },
+      {
+        "value": 3,
+        "suffix": "",
+        "label": "stacks covered end to end",
+        "linkToGithub": false
+      }
+    ],
+    "layers": [
+      {
+        "label": "Interface",
+        "note": "React, SwiftUI, dataviz"
+      },
+      {
+        "label": "API",
+        "note": "GraphQL, tRPC, gRPC, REST"
+      },
+      {
+        "label": "Services",
+        "note": "Go, Rust, Node, FastAPI"
+      },
+      {
+        "label": "Data",
+        "note": "PostgreSQL, Kafka, Redis, pgvector"
+      },
+      {
+        "label": "Algorithm",
+        "note": "ML models, matching, forecasting"
+      }
+    ]
+  },
+  "pipeline": {
+    "stages": [
+      "Commit",
+      "Tests",
+      "Review",
+      "Build",
+      "Deploy",
+      "Shipped"
+    ],
+    "label": "How every change reaches production · demo loop"
+  },
+  "caseStudy": {
+    "eyebrow": "Case study"
+  },
+  "work": {
+    "eyebrow": "Selected work",
+    "title": "Work a team can build on",
+    "lede": "Every project is a real repository: the algorithm, the schema, the tests and the UI, because a team can only build on what actually works. Each entry states the outcome it was built for. Web projects are live.",
+    "moreLabel": "See all 154 projects ↗",
+    "filters": [
+      {
+        "key": "all",
+        "label": "All"
+      },
+      {
+        "key": "ai",
+        "label": "AI · ML"
+      },
+      {
+        "key": "fullstack",
+        "label": "Full-stack"
+      },
+      {
+        "key": "fintech",
+        "label": "Fintech"
+      },
+      {
+        "key": "data",
+        "label": "Data · Systems"
+      },
+      {
+        "key": "devtools",
+        "label": "DevTools"
+      },
+      {
+        "key": "commerce",
+        "label": "Commerce"
+      },
+      {
+        "key": "mobile",
+        "label": "Mobile"
+      },
+      {
+        "key": "games",
+        "label": "Games"
+      },
+      {
+        "key": "brand",
+        "label": "Brand · Web"
+      }
+    ],
+    "projects": [
+      {
+        "title": "Docstream RAG",
+        "blurb": "Retrieval-augmented answers over 40k support documents. Hybrid BM25 + pgvector search, reranking, and citations that link back to the exact paragraph.",
+        "outcome": "Support team answers tickets from one screen instead of searching three wikis.",
+        "metric": {
+          "value": "-38%",
+          "label": "median ticket handling time"
+        },
+        "caseStudy": {
+          "context": "A 12-person support team at a B2B SaaS company, 40k pages of product docs across three wikis.",
+          "problem": "Agents spent the first minutes of every ticket searching. Answers were inconsistent and escalations to engineering were climbing.",
+          "approach": "Hybrid search (BM25 + pgvector) with a reranker, citations to the exact paragraph, and a feedback loop that flags stale documents. Shipped behind a feature flag, measured against a control group for four weeks.",
+          "result": "Median handling time fell 38%. Escalations to engineering dropped by a third. The team owns the index refresh job and the eval suite without me."
+        },
+        "tags": [
+          "Python",
+          "FastAPI",
+          "pgvector",
+          "sentence-transformers"
+        ],
+        "category": "ai",
+        "year": 2026,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 212,
+        "coverage": "91%",
+        "sample": true
+      },
+      {
+        "title": "Riskgrade",
+        "blurb": "Gradient-boosted credit risk scoring with calibrated probabilities, SHAP explanations per decision and a reviewer UI for overrides.",
+        "outcome": "Risk reviewers see why a score was given, so overrides are rare and auditable.",
+        "metric": {
+          "value": "-62%",
+          "label": "manual overrides per week"
+        },
+        "tags": [
+          "scikit-learn",
+          "LightGBM",
+          "React",
+          "PostgreSQL"
+        ],
+        "category": "fintech",
+        "year": 2025,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 164,
+        "coverage": "88%",
+        "sample": true
+      },
+      {
+        "title": "Ledgerline",
+        "blurb": "Order-matching engine in Go with a price-time priority book, deterministic replay from a Kafka log and sub-millisecond p99 under load tests.",
+        "outcome": "Replayable log means the team can reproduce any incident instead of guessing.",
+        "metric": {
+          "value": "0.8 ms",
+          "label": "p99 match latency under load"
+        },
+        "tags": [
+          "Go",
+          "Kafka",
+          "gRPC",
+          "TimescaleDB"
+        ],
+        "category": "data",
+        "year": 2025,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 301,
+        "coverage": "94%",
+        "sample": true
+      },
+      {
+        "title": "Fareframe",
+        "blurb": "Airline revenue management: EMSR-b seat allocation across fare classes with demand forecasting and a what-if dashboard for analysts.",
+        "outcome": "Analysts test pricing scenarios themselves, without waiting on engineering.",
+        "metric": {
+          "value": "2 days → 20 min",
+          "label": "time to run a pricing scenario"
+        },
+        "tags": [
+          "Python",
+          "NumPy",
+          "Next.js",
+          "Redis"
+        ],
+        "category": "data",
+        "year": 2024,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 97,
+        "coverage": "86%",
+        "sample": true
+      },
+      {
+        "title": "Crossmarket",
+        "blurb": "Cross-border checkout with live FX, landed-cost duties per HS code, multi-currency settlement and a Stripe-backed payment flow.",
+        "outcome": "Customers see the full landed price up front, cutting refund requests after delivery.",
+        "metric": {
+          "value": "-31%",
+          "label": "refund requests in the first quarter"
+        },
+        "tags": [
+          "TypeScript",
+          "tRPC",
+          "Prisma",
+          "Stripe"
+        ],
+        "category": "commerce",
+        "year": 2024,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 188,
+        "coverage": "90%",
+        "sample": true
+      },
+      {
+        "title": "Pulsewire",
+        "blurb": "Rust WebSocket telemetry fan-out on Axum and Tokio. Backpressure-aware, 50k concurrent clients on one node, Protocol Buffers on the wire.",
+        "outcome": "One node replaced a four-node cluster, with the ops runbook handed to the platform team.",
+        "metric": {
+          "value": "4 → 1",
+          "label": "nodes for the same traffic"
+        },
+        "tags": [
+          "Rust",
+          "Axum",
+          "Tokio",
+          "Protobuf"
+        ],
+        "category": "data",
+        "year": 2024,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 143,
+        "coverage": "92%",
+        "sample": true
+      },
+      {
+        "title": "Gitgraph",
+        "blurb": "A CLI and web view that renders any repository's history as a readable release story: conventional commits, branches and annotated tags.",
+        "outcome": "New engineers read the release history in minutes instead of asking around.",
+        "metric": {
+          "value": "1.2k",
+          "label": "GitHub stars"
+        },
+        "tags": [
+          "Go",
+          "Svelte",
+          "WebGL"
+        ],
+        "category": "devtools",
+        "year": 2023,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 76,
+        "coverage": "84%",
+        "sample": true
+      },
+      {
+        "title": "Cadence",
+        "blurb": "Native iOS habit tracker in SwiftUI with on-device streak modelling, widgets and CloudKit sync. No account required.",
+        "outcome": "Shipped to the App Store with a test suite the next maintainer can rely on.",
+        "metric": {
+          "value": "4.8",
+          "label": "App Store rating, 300+ reviews"
+        },
+        "tags": [
+          "Swift",
+          "SwiftUI",
+          "CloudKit"
+        ],
+        "category": "mobile",
+        "year": 2023,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 58,
+        "coverage": "81%",
+        "sample": true
+      },
+      {
+        "title": "Tidewatch",
+        "blurb": "Interactive dataviz of coastal tide gauges: 30 years of hourly readings rendered with three.js and a custom time-scrubber.",
+        "outcome": "Researchers explore three decades of data in the browser, no download required.",
+        "metric": {
+          "value": "260k",
+          "label": "readings rendered at 60 fps"
+        },
+        "tags": [
+          "three.js",
+          "D3",
+          "TypeScript"
+        ],
+        "category": "brand",
+        "year": 2023,
+        "link": "#",
+        "repo": "#",
+        "ci": "passing",
+        "tests": 64,
+        "coverage": "83%",
+        "sample": true
+      }
+    ]
+  },
+  "references": {
+    "eyebrow": "References",
+    "title": "What the teams say",
+    "items": [
+      {
+        "quote": "Eric joined mid-quarter, had a real PR merged in his first week, and by the time he rolled off the team could run the retrieval service without him. That handover is rarer than the engineering.",
+        "name": "Reference name",
+        "role": "VP Engineering, B2B SaaS",
+        "sample": true
+      },
+      {
+        "quote": "He asked about the business goal before the architecture. The thing he shipped was smaller than what we asked for and it was the thing we needed.",
+        "name": "Reference name",
+        "role": "Founder, fintech startup",
+        "sample": true
+      }
+    ]
+  },
+  "experience": {
+    "eyebrow": "Experience",
+    "title": "Teams I’ve helped ship",
+    "lede": "A decade inside agencies, product teams and independent engagements. The constant: leave the team faster and the codebase healthier than I found them.",
+    "items": [
+      {
+        "dates": "2022 — Present",
+        "title": "Principal Full-stack & AI Engineer",
+        "org": "Independent / Contract",
+        "text": "Embedded with client teams to design and ship production systems end to end: retrieval and ML scoring services, cross-border commerce platforms, real-time data infrastructure and the front ends on top. Own architecture, delivery and code quality so the rest of the team can move faster."
+      },
+      {
+        "dates": "2019 — 2022",
+        "title": "Senior Software Engineer",
+        "org": "Product & Platform teams",
+        "text": "Led feature-rich web products on React/TypeScript over Node and PostgreSQL, plus Go and Rust services for the latency-sensitive paths. Introduced conventional commits, release branching and CI so the team could grow without slowing down."
+      },
+      {
+        "dates": "2016 — 2019",
+        "title": "Full-stack Engineer",
+        "org": "Agency & startup work",
+        "text": "Built customer-facing storefronts, dashboards and internal tools across the JavaScript/PHP/Python stack; grew from feature branches into proper git-flow and annotated releases."
+      },
+      {
+        "dates": "2014 — 2016",
+        "title": "Software Developer",
+        "org": "Early career",
+        "text": "Shipped the first web apps, PHP/MySQL catalogues and vanilla-JS front ends, and learned the fundamentals of shipping, testing and version control in the open."
+      }
+    ],
+    "education": {
+      "label": "Education",
+      "title": "B.Sc. Computer Science",
+      "meta": "University · 2010 — 2014",
+      "text": "Algorithms, databases, distributed systems and numerical methods."
+    },
+    "certificationsLabel": "Certifications",
+    "certifications": [
+      "AWS Certified Solutions Architect – Associate",
+      "Google Professional Machine Learning Engineer",
+      "MongoDB Associate Developer",
+      "Meta Front-End Developer Professional Certificate"
+    ]
+  },
+  "skills": {
+    "eyebrow": "Toolkit",
+    "title": "Skills & stack",
+    "lede": "Depth across languages, frameworks and infrastructure, chosen for the problem and the team that has to maintain it, not by habit.",
+    "groups": [
+      {
+        "name": "Languages",
+        "items": [
+          "TypeScript",
+          "JavaScript",
+          "Python",
+          "Go",
+          "Rust",
+          "Swift",
+          "PHP",
+          "SQL"
+        ]
+      },
+      {
+        "name": "Frontend",
+        "items": [
+          "React 18",
+          "Next.js 14",
+          "Svelte",
+          "Tailwind CSS",
+          "Vite",
+          "three.js",
+          "WebGL",
+          "HTML5 Canvas"
+        ]
+      },
+      {
+        "name": "Backend",
+        "items": [
+          "Node.js",
+          "Express",
+          "FastAPI",
+          "Flask",
+          "GraphQL",
+          "tRPC",
+          "gRPC",
+          "Axum / Tokio"
+        ]
+      },
+      {
+        "name": "AI / ML",
+        "items": [
+          "PyTorch",
+          "scikit-learn",
+          "LangChain",
+          "sentence-transformers",
+          "pgvector",
+          "FAISS",
+          "tiktoken",
+          "NumPy / pandas"
+        ]
+      },
+      {
+        "name": "Data / Infra",
+        "items": [
+          "PostgreSQL",
+          "MySQL",
+          "MongoDB",
+          "Redis",
+          "Kafka",
+          "TimescaleDB",
+          "Prisma",
+          "Protocol Buffers"
+        ]
+      },
+      {
+        "name": "Mobile & More",
+        "items": [
+          "Swift / SwiftUI",
+          "iOS",
+          "Socket.IO",
+          "Docker",
+          "GitHub Actions",
+          "Zod",
+          "Redux"
+        ]
+      }
+    ]
+  },
+  "about": {
+    "eyebrow": "About",
+    "title": "The team’s result is the only score that counts.",
+    "paragraphs": [
+      "I’m a full-stack and AI engineer who likes hard problems and clean systems. Over the past decade I’ve worked across the whole stack, from the algorithm at the core up through relational schemas, tested services, HTTP APIs and refined, modern interfaces.",
+      "What I optimise for is simple: the team ships, and keeps shipping after I’ve moved on. That means code the next engineer can read and extend, a git history that explains itself, and the boring, reliable choice whenever the clever one would cost the team later.",
+      "The range, from RAG pipelines and risk scoring to Go and Rust services, cross-border commerce and native iOS, exists so I can take whichever layer is blocking the team this week."
+    ],
+    "valuesTitle": "How I work inside a team",
+    "values": [
+      {
+        "title": "Team first.",
+        "text": "Code the next engineer can read and extend without me in the room."
+      },
+      {
+        "title": "Correctness.",
+        "text": "Real tests and verified cores, never happy-path demos that fail in production."
+      },
+      {
+        "title": "Clean history.",
+        "text": "Incremental, readable git so reviews are fast and rollbacks are safe."
+      },
+      {
+        "title": "Craft.",
+        "text": "Interfaces that feel considered, because users judge the whole team by them."
+      }
+    ],
+    "statusTitle": "Status",
+    "status": "Ready to join a team that needs to ship. Contract or full-time, remote-first, replies within a day.",
+    "nowTitle": "Now shipping",
+    "now": "Hybrid retrieval over 40k documents, and a Rust telemetry fan-out. Two client teams, one repo each, both with CI green and handover docs written.",
+    "teamTitle": "Where I plug into a team",
+    "team": [
+      "Product",
+      "Design",
+      "Data",
+      "Ops",
+      "QA",
+      "Leadership"
+    ],
+    "githubNote": "154 public repositories, every one with tests",
+    "linkedinNote": "Work history and references"
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Let’s ship it together.",
+    "lede": "If your team has a product to get out the door, I’d like to hear about it. Contract or full-time. Email is the fastest way to reach me.",
+    "lookingForTitle": "What I’m looking for",
+    "lookingFor": [
+      {
+        "k": "Role",
+        "v": "Senior or principal engineer, contract or full-time"
+      },
+      {
+        "k": "Team",
+        "v": "Product teams of 3 to 30 engineers with something to ship"
+      },
+      {
+        "k": "Time zone",
+        "v": "Remote-first, 4+ hours overlap with Europe or US East"
+      },
+      {
+        "k": "Start",
+        "v": "Two weeks’ notice"
+      }
+    ],
+    "planTitle": "First 30 days with your team",
+    "plan": [
+      {
+        "when": "Day 1",
+        "what": "Read the codebase, run the tests, ship a small fix."
+      },
+      {
+        "when": "Week 1",
+        "what": "First real pull request merged through your review process."
+      },
+      {
+        "when": "Week 2–4",
+        "what": "Own the layer that is blocking the team and ship it."
+      },
+      {
+        "when": "Day 30",
+        "what": "Handover docs written. The team runs it without me."
+      }
+    ],
+    "facts": [
+      {
+        "k": "Response",
+        "v": "Within a day"
+      },
+      {
+        "k": "References",
+        "v": "Available on request"
+      }
+    ]
+  },
+  "footer": {
+    "left": "Ready to help your team ship.",
+    "right": "© 2026 Eric Champ · Full-stack & AI Engineer"
+  }
+}
