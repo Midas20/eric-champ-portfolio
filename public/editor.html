@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Portfolio Editor</title>
+<meta name="color-scheme" content="dark light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/editor.css?v=202610271200">
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-l">
+    <span class="mark">EC</span>
+    <strong>Portfolio editor</strong>
+    <span id="status" class="status">Loading…</span>
+  </div>
+  <div class="bar-r">
+    <a class="btn ghost" href="/" target="_blank" rel="noopener">Open live site ↗</a>
+    <button id="btnPreview" class="btn ghost" type="button">Preview draft</button>
+    <button id="btnSave" class="btn primary" type="button" disabled>Publish</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side">
+    <nav id="sections" class="sections" aria-label="Sections"></nav>
+
+    <div class="side-group">
+      <p class="side-h">Stack pages <span id="stackCount" class="count"></span></p>
+      <p class="side-note">Generated from project tags and skills. Every one has its own URL.</p>
+      <div id="stackList" class="stack-list"></div>
+    </div>
+
+    <div class="side-group">
+      <p class="side-h">Previous versions</p>
+      <div id="history" class="history"><p class="side-note">Saved automatically each time you publish.</p></div>
+    </div>
+
+    <div class="side-group tools">
+      <button id="btnJson" class="link" type="button">Edit as JSON</button>
+      <button id="btnExport" class="link" type="button">Export backup</button>
+      <label class="link" for="fileImport">Import backup</label>
+      <input id="fileImport" type="file" accept="application/json,.json" hidden>
+      <button id="btnDiscard" class="link danger" type="button">Discard unpublished changes</button>
+    </div>
+  </aside>
+
+  <main id="panel" class="panel" tabindex="-1"></main>
+</div>
+
+<div id="gate" class="gate" hidden>
+  <form id="gateForm" class="gate-card">
+    <p class="side-h">Portfolio editor</p>
+    <h1>Enter your edit key</h1>
+    <p class="side-note" id="gateMsg">Use the private link /edit/&lt;key&gt;, or paste the key here.</p>
+    <label for="gateKey" class="lbl">Edit key</label>
+    <input id="gateKey" type="password" autocomplete="current-password" required>
+    <button class="btn primary" type="submit">Open editor</button>
+  </form>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="/editor.js?v=202610271200"></script>
+</body>
+</html>
