@@ -2,12 +2,13 @@
 // Unknown slugs still render the page (with a 404 status) so the visitor can pick another stack.
 import { renderPage, slugify } from "../../lib/site.js";
 
-export async function onRequestGet({ request, env, params }) {
+export async function onRequestGet(ctx) {
+  const { request, env, params } = ctx;
   const raw = decodeURIComponent(String(params.slug || ""));
   const slug = slugify(raw);
   if (slug !== raw) {
     // normalise /stack/Next.js → /stack/next-js
     return Response.redirect(new URL(`/stack/${slug}`, request.url).toString(), 301);
   }
-  return renderPage(env, request, slug);
+  return renderPage(env, request, slug, ctx.waitUntil.bind(ctx));
 }

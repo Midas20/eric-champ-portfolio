@@ -12,6 +12,7 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 const lerp = (a, b, k) => a + (b - a) * k;
 const pad2 = (n) => String(n).padStart(2, "0");
+const clip = (s, n) => { s = String(s || ""); return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s; };
 
 /* ---------- safety: everything from the data is escaped ---------- */
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -101,6 +102,34 @@ async function loadSite() {
     try { const r = await fetch(url, { cache: "no-store" }); if (r.ok) return await r.json(); } catch (e) {}
   }
   return null;
+}
+
+/* ================================================================== */
+/* first visit: a change runs the pipeline to shipped, then the page opens */
+/* ================================================================== */
+function intro(S) {
+  const root = document.documentElement;
+  if (!root.classList.contains("intro")) return;
+  try { sessionStorage.setItem("intro", "1"); } catch (e) {}
+  const stages = (S.pipeline.stages || []).slice(0, 7);
+  if (!stages.length) { root.classList.remove("intro"); return; }
+  const el = document.createElement("div");
+  el.className = "intro-screen"; el.setAttribute("aria-hidden", "true");
+  el.innerHTML = `<div class="i-wrap">
+    <ol class="i-track" style="--n:${stages.length}">${stages.map((s, i) => `<li style="--i:${i}"><i></i><span>${esc(s)}</span></li>`).join("")}<b class="i-fill"></b></ol>
+    <p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(S.meta.role)}</span></p></div>`;
+  document.body.appendChild(el);
+  const skip = ["click", "keydown", "wheel", "touchstart"];
+  let done = false;
+  const finish = () => {
+    if (done) return; done = true;
+    skip.forEach((e) => removeEventListener(e, finish));
+    el.classList.add("out");
+    root.classList.remove("intro");
+    setTimeout(() => el.remove(), 800);
+  };
+  skip.forEach((e) => addEventListener(e, finish, { passive: true }));
+  setTimeout(finish, 1100 + stages.length * 240);
 }
 
 /* ================================================================== */
@@ -487,129 +516,302 @@ function start(S, route, stacks) {
     draw(projects);
   })();
 
-  /* ---------- section art beside each heading ---------- */
+  /* ---------- section art: a live panel beside each heading, built from the data ---------- */
   (function sectionArt() {
-    const svg = (inner, h = 170) => `<svg viewBox="0 0 360 ${h}" role="presentation" focusable="false">${inner}</svg>`;
+    const svg = (w, h, inner) => `<svg viewBox="0 0 ${w} ${h}" role="presentation" focusable="false">${inner}</svg>`;
     const T = (x, y, s, cls = "", anchor = "start", d = 0) => `<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}" style="--d:${d}s">${esc(s)}</text>`;
+    const panel = (title, meta, body, foot) => `<div class="panel"><div class="panel-bar"><span class="panel-title">${title}</span><span class="panel-meta">${meta}</span></div>
+      <div class="panel-body">${body}</div>${foot != null ? `<div class="panel-foot">${foot}</div>` : ""}</div>`;
+    const norm = (s) => String(s).toLowerCase().replace(/\s+\d+(\.\d+)*$/, "").trim();
+    const thisYear = new Date().getFullYear();
+    const wait = (timers) => (fn, ms) => timers.push(setTimeout(fn, ms));
+
     const builders = {
+      /* control vs. with-the-change, ending on the case study's real metric */
       case(el) {
         const p = projects.find((x) => x.caseStudy) || {};
         const val = p.metric ? String(p.metric.value) : "";
         const m = /^-(\d+(?:\.\d+)?)%$/.exec(val);
-        const pct = m ? +m[1] : 35;
-        const X = (i) => 30 + i * (300 / 7), Y = (v) => 150 - v * 1.05;
+        const pct = Math.min(55, m ? +m[1] : 35);
+        const W = 440, H = 190, L = 30, R = 424, top = 30, bot = 158;
+        const X = (i) => L + i * ((R - L) / 7), Y = (v) => bot - (v - 40) * ((bot - top) / 70);
         const ctl = [96, 98, 95, 97, 96, 98, 95, 97];
         const trt = [97, 96, 96 - pct * 0.35, 96 - pct * 0.7, 98 - pct * 0.95, 100 - pct, 101 - pct, 100 - pct];
-        const path = (arr) => arr.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join(" ");
+        const pts = (a, from = 0) => a.slice(from).map((v, j) => [X(from + j), Y(v)]);
+        const line = (a) => "M" + pts(a).map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(" L");
+        const gap = "M" + [...pts(ctl, 1), ...pts(trt, 1).reverse()].map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(" L") + " Z";
         const xs = (X(1) + X(2)) / 2;
-        el.innerHTML = svg(`<path class="axis" d="M30 154 H330"/>
-          <path class="guide fade" style="--d:.2s" d="M${xs} 34 V154"/>${T(xs + 5, 40, "ship", "fade", "start", 0.3)}
-          <path class="ln draw" pathLength="1" style="--d:.2s" d="${path(ctl)}"/>
-          <path class="ln acc draw" pathLength="1" style="--d:.5s" d="${path(trt)}"/>
-          <circle class="dot fade" style="--d:1.8s" cx="${X(7)}" cy="${Y(trt[7])}" r="3.5"/>
-          ${T(330, Y(ctl[7]) - 9, "control", "fade", "end", 1.4)}${T(330, Y(trt[7]) + 22, val || `-${pct}%`, "fade big accent", "end", 1.9)}
-          ${T(30, 168, "wk 1", "fade", "start", 0.2)}${T(330, 168, "wk 8", "fade", "end", 0.2)}`, 172);
+        const grid = [50, 70, 90, 110].map((v) => `<path class="grid" d="M${L} ${Y(v).toFixed(1)} H${R}"/>`).join("");
+        const weeks = ctl.map((_, i) => `<path class="tick" d="M${X(i)} ${bot} V${bot + 4}"/>${T(X(i), bot + 16, `wk ${i + 1}`, "fade", "middle", 0.1 + i * 0.04)}`).join("");
+        const body = svg(W, H, `${grid}<path class="axis" d="M${L} ${bot} H${R}"/>${weeks}
+          <path class="gap fade" style="--d:.9s" d="${gap}"/>
+          <path class="guide fade" style="--d:.2s" d="M${xs} ${top - 8} V${bot}"/>
+          <g class="fade" style="--d:.3s"><rect class="flag" x="${xs + 6}" y="${top - 18}" width="62" height="16" rx="3"/>${T(xs + 37, top - 7, "flag on", "flag-t", "middle")}</g>
+          <path class="ln draw" pathLength="1" style="--d:.2s" d="${line(ctl)}"/>
+          <path class="ln acc draw" pathLength="1" style="--d:.5s" d="${line(trt)}"/>
+          ${trt.map((v, i) => `<circle class="pt fade" style="--d:${(0.6 + i * 0.13).toFixed(2)}s" cx="${X(i)}" cy="${Y(v).toFixed(1)}" r="2.2"/>`).join("")}
+          <circle class="dot fade" style="--d:1.2s" cx="${X(7)}" cy="${Y(trt[7]).toFixed(1)}" r="4"/><circle class="pulse fade" style="--d:1.2s" cx="${X(7)}" cy="${Y(trt[7]).toFixed(1)}" r="4"/>
+          ${T(R, Y(ctl[7]) - 9, "control", "fade", "end", 1.4)}${T(R - 10, Y(trt[7]) - 10, "with the change", "fade accent", "end", 1.3)}`);
+        el.innerHTML = panel(`${esc(slugify(p.title || "case"))} · experiment`, `<span class="live ok">${esc(val || "measured")}</span>`, body,
+          `<span><i class="sw"></i>control</span><span><i class="sw acc"></i>with the change</span><span class="push">${esc(p.metric ? p.metric.label : "")}</span>`);
       },
+
+      /* a CI run for each project in turn: jobs, tests, coverage, then the outcome */
       work(el) {
-        el.innerHTML = `<div class="tree"><div class="tree-head"><span class="tree-name">repo/</span><span class="tree-ci">CI</span></div>
-          <ul class="tree-list"><li><span>├─ core/</span><span class="muted">algorithm</span></li><li><span>├─ schema.sql</span><span class="muted">schema</span></li>
-          <li><span>├─ tests/</span><span class="tree-tests">0 passing</span></li><li><span>└─ web/</span><span class="muted">interface</span></li></ul></div>`;
-        const name = $(".tree-name", el), ci = $(".tree-ci", el), lis = $$(".tree-list li", el), tests = $(".tree-tests", el);
         const pool = (route && route.slug && stacks.get(route.slug) ? stacks.get(route.slug).projects : projects).filter((p) => p.tests);
-        let k = 0, timers = [], running = false;
-        const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+        if (!pool.length) return null;
+        const jobs = ["lint", "test", "build", "deploy"];
+        const files = [["core/", "algorithm"], ["schema.sql", "schema"], ["tests/", ""], ["web/", "interface"]];
+        el.innerHTML = panel(`<span class="w-repo">repo/</span>`, `<span class="live w-ci">queued</span>`,
+          `<div class="w-grid">
+            <ul class="w-tree">${files.map(([f, note], i) => `<li><span>${i === files.length - 1 ? "└─" : "├─"} ${f}</span><em${f === "tests/" ? ' class="w-tn"' : ""}>${note}</em></li>`).join("")}</ul>
+            <ul class="w-jobs">${jobs.map((j) => `<li><span class="w-st"></span><span class="w-name">${j}</span><span class="w-bar"><i></i></span><span class="w-val"></span></li>`).join("")}</ul>
+          </div>
+          <div class="w-out"><div class="w-covrow"><span>coverage</span><span class="w-cov"><i></i></span><span class="w-covv">–</span></div>
+            <div class="w-metric"><strong class="w-mv"></strong><span class="w-ml"></span></div></div>`,
+          `<span class="w-tags"></span><span class="push w-idx"></span>`);
+        const $e = (s) => $(s, el), lis = $$(".w-jobs li", el);
+        let k = 0, timers = [], running = false, gen = 0;
+        const later = wait(timers);
         function show(p, animate) {
-          name.textContent = `${slugify(p.title)}/`; ci.textContent = "CI"; ci.classList.remove("ok");
-          if (!animate) { lis.forEach((li) => li.classList.add("show")); tests.textContent = `${p.tests} passing`; ci.textContent = "CI passing"; ci.classList.add("ok"); return; }
-          lis.forEach((li) => li.classList.remove("show")); tests.textContent = "0 passing";
-          lis.forEach((li, i) => later(() => li.classList.add("show"), 200 + i * 180));
-          const t0 = 200 + 2 * 180;
-          later(() => {
-            const begin = performance.now(), dur = 800;
-            (function tick() {
-              const f = Math.min(1, Math.max(0, (performance.now() - begin) / dur));
-              tests.textContent = `${Math.round(p.tests * (1 - Math.pow(1 - f, 3)))} passing`;
-              if (f < 1 && running) requestAnimationFrame(tick);
-            })();
-          }, t0);
-          later(() => { ci.textContent = "CI passing"; ci.classList.add("ok"); }, t0 + 1100);
-          later(() => { if (running) show(pool[++k % pool.length], true); }, t0 + 3400);
+          const run = ++gen;
+          const covPct = parseFloat(p.coverage) || 0;
+          $e(".w-repo").textContent = `${slugify(p.title)}/`;
+          $e(".w-tags").textContent = (p.tags || []).slice(0, 4).join(" · ");
+          $e(".w-idx").textContent = `${(k % pool.length) + 1} / ${pool.length}${p.year ? ` · ${p.year}` : ""}`;
+          $e(".w-mv").textContent = p.metric ? p.metric.value : "";
+          $e(".w-ml").textContent = p.metric ? p.metric.label : "";
+          const ci = $e(".w-ci"), metric = $e(".w-metric"), cov = $e(".w-cov i"), covv = $e(".w-covv"), tn = $e(".w-tn");
+          const vals = ["clean", `${p.tests} passing`, "ok", p.link && p.link !== "#" ? "live" : "ok"];
+          const finish = () => {
+            lis.forEach((li, i) => { li.className = "done"; $(".w-bar i", li).style.width = "100%"; $(".w-val", li).textContent = vals[i]; });
+            ci.textContent = p.ci || "passing"; ci.classList.add("ok");
+            cov.style.width = `${covPct}%`; covv.textContent = p.coverage || "–"; tn.textContent = `${p.tests} tests`;
+            metric.classList.add("show");
+          };
+          if (!animate) return finish();
+          lis.forEach((li) => { li.className = ""; $(".w-bar i", li).style.width = "0"; $(".w-val", li).textContent = ""; });
+          ci.textContent = "running"; ci.classList.remove("ok"); metric.classList.remove("show");
+          cov.style.width = "0"; covv.textContent = "–"; tn.textContent = "";
+          lis.forEach((li, i) => {
+            const t0 = 250 + i * 650;
+            later(() => { li.className = "run"; $(".w-bar i", li).style.width = "100%"; }, t0);
+            if (i === 1) later(() => {
+              const begin = performance.now(), dur = 560, val = $(".w-val", li);
+              (function tick() {
+                const f = Math.min(1, Math.max(0, (performance.now() - begin) / dur));
+                val.textContent = `${Math.round(p.tests * (1 - Math.pow(1 - f, 3)))}`;
+                tn.textContent = `${Math.round(p.tests * f)} tests`;
+                if (f < 1 && running && run === gen) requestAnimationFrame(tick);
+              })();
+            }, t0);
+            later(() => { li.className = "done"; $(".w-val", li).textContent = vals[i]; }, t0 + 600);
+          });
+          const end = 250 + jobs.length * 650;
+          later(() => { ci.textContent = p.ci || "passing"; ci.classList.add("ok"); cov.style.width = `${covPct}%`; covv.textContent = p.coverage || "–"; }, end);
+          later(() => metric.classList.add("show"), end + 300);
+          later(() => { if (running) { k++; show(pool[k % pool.length], true); } }, end + 3600);
         }
-        if (!pool.length) { el.innerHTML = ""; return null; }
         return {
-          start() { if (running) return; running = true; if (reduceMotion) return show(pool[0], false); show(pool[k % pool.length], true); },
+          start() { if (running) return; running = true; show(pool[k % pool.length], !reduceMotion); },
           stop() { running = false; timers.forEach(clearTimeout); timers = []; },
         };
       },
+
+      /* the references as a review thread that ends approved */
       references(el) {
-        const bub = (x, y, w, h, cls, lines, d) => `<g class="bubble ${cls}" style="--d:${d}s"><rect class="bb" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>
-          ${lines.map((lw, i) => `<rect class="sk" x="${x + 13}" y="${y + 13 + i * 10}" width="${lw}" height="4" rx="2"/>`).join("")}</g>`;
-        el.innerHTML = svg(`${bub(16, 12, 230, 46, "", [190, 130], 0)}${bub(116, 68, 228, 46, "mine", [180, 100], 1.2)}
-          <g class="bubble" style="--d:2.4s"><rect class="bb" x="16" y="124" width="86" height="34" rx="9"/>
-          <circle class="tdot" cx="40" cy="141" r="3" style="--d:0s"/><circle class="tdot" cx="56" cy="141" r="3" style="--d:.2s"/><circle class="tdot" cx="72" cy="141" r="3" style="--d:.4s"/></g>`);
-      },
-      experience(el) {
-        const items = (S.experience.items || []).map((it) => ({ year: (String(it.dates || "").match(/\d{4}/) || [""])[0], label: String(it.title || "").trim().split(/\s+/)[0] })).reverse();
-        if (!items.length) return null;
-        const n = items.length, x0 = 24, x1 = 336, w = (x1 - x0) / n, yTop = 44, yBot = 132, dy = n > 1 ? (yBot - yTop) / (n - 1) : 0;
-        let d = `M${x0} ${yBot}`;
-        items.forEach((_, i) => { const y = yBot - i * dy; if (i) d += ` V${y}`; d += ` H${x0 + (i + 1) * w}`; });
-        const labels = items.map((it, i) => T(x0 + i * w + 4, yBot - i * dy - 9, it.label, i === n - 1 ? "fade accent" : "fade", "start", 0.5 + i * 0.25)).join("");
-        const ticks = items.map((it, i) => `<path class="tick" d="M${x0 + i * w} 147 V153"/>${T(x0 + i * w, 167, it.year, "fade", "start", 0.2)}`).join("");
-        el.innerHTML = svg(`<path class="axis" d="M${x0} 150 H${x1}"/>${ticks}<path class="ln acc draw" pathLength="1" style="--d:.2s" d="${d}"/>${labels}
-          <circle class="dot fade" style="--d:1.6s" cx="${x1}" cy="${yTop}" r="3.5"/><circle class="pulse fade" style="--d:1.6s" cx="${x1}" cy="${yTop}" r="3.5"/>${T(x1, 167, "now", "fade", "end", 0.2)}`, 172);
-      },
-      skills(el) {
-        el.innerHTML = `<div class="term"><div class="term-bar"><i></i><i></i><i></i><span>pick-stack</span></div><div class="term-body"></div></div>`;
-        const body = $(".term-body", el), pool = projects.filter((p) => p.tags && p.tags.length);
-        if (!pool.length) return null;
-        const out = (p) => "→ " + p.tags.slice(0, 3).join(" · ").toLowerCase();
-        let k = 0, timer = 0, running = false;
-        const entry = (typed) => {
-          const line = document.createElement("div"); line.className = "t-line";
-          line.innerHTML = `<span class="t-prompt">$</span> <span class="t-cmd"></span>${typed ? '<span class="t-caret"></span>' : ""}`;
-          body.appendChild(line);
-          while (body.children.length > 7) body.firstElementChild.remove();
-          return line;
-        };
-        const addOut = (p) => { const o = document.createElement("div"); o.className = "t-out"; o.textContent = out(p); body.appendChild(o); };
-        function next() {
-          if (!running) return;
-          const p = pool[k++ % pool.length], cmd = `pick --for ${slugify(p.title)}`;
-          const line = entry(true), cmdEl = $(".t-cmd", line);
-          let i = 0;
-          (function type() {
-            if (!running) return;
-            cmdEl.textContent = cmd.slice(0, ++i);
-            if (i < cmd.length) { timer = setTimeout(type, 26 + Math.random() * 44); return; }
-            const c = $(".t-caret", line); if (c) c.remove();
-            timer = setTimeout(() => { addOut(p); timer = setTimeout(next, 1500); }, 260);
-          })();
+        const refs = (S.references.items || []).filter((r) => r.quote).slice(0, 3);
+        if (!refs.length) return null;
+        const initials = (r) => (String(r.role || r.name || "").match(/[A-Za-z]+/g) || ["?"]).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+        el.innerHTML = panel("review thread", `<span class="live">${refs.length} reviewer${refs.length > 1 ? "s" : ""}</span>`,
+          `<div class="r-list">${refs.map((r) => `<div class="r-row"><span class="r-av">${esc(initials(r))}</span><div>
+            <div class="r-meta"><span class="r-who">${esc(r.role || r.name)}</span><span class="r-ok">✓ approved</span></div>
+            <p class="r-q"></p></div></div>`).join("")}</div>`,
+          `<span class="r-merge">awaiting review</span><span class="push">${refs.some((r) => r.sample) ? "example references" : "references on request"}</span>`);
+        const rows = $$(".r-row", el), merge = $(".r-merge", el);
+        let timers = [], running = false;
+        const later = wait(timers);
+        const text = refs.map((r) => `“${clip(r.quote, 118)}”`);
+        function finish() {
+          rows.forEach((row, i) => { row.classList.add("show"); $(".r-q", row).textContent = text[i]; $(".r-ok", row).classList.add("show"); });
+          merge.textContent = `✓ approved by ${refs.length} · merged`; merge.classList.add("ok");
+        }
+        function play() {
+          rows.forEach((row) => { row.classList.remove("show"); $(".r-q", row).textContent = ""; $(".r-ok", row).classList.remove("show"); });
+          merge.textContent = "awaiting review"; merge.classList.remove("ok");
+          let t = 200;
+          rows.forEach((row, i) => {
+            later(() => row.classList.add("show"), t);
+            const q = $(".r-q", row), s = text[i];
+            for (let c = 1; c <= s.length; c += 2) later(() => { q.textContent = s.slice(0, c); }, t + 250 + c * 9);
+            later(() => { q.textContent = s; $(".r-ok", row).classList.add("show"); }, t + 300 + s.length * 9);
+            t += 600 + s.length * 9;
+          });
+          later(() => { merge.textContent = `✓ approved by ${refs.length} · merged`; merge.classList.add("ok"); }, t);
+          later(() => { if (running) play(); }, t + 4200);
         }
         return {
-          start() {
-            if (running) return; running = true;
-            if (reduceMotion) { pool.slice(0, 3).forEach((p) => { $(".t-cmd", entry(false)).textContent = `pick --for ${slugify(p.title)}`; addOut(p); }); return; }
-            next();
-          },
+          start() { if (running) return; running = true; reduceMotion ? finish() : play(); },
+          stop() { running = false; timers.forEach(clearTimeout); timers = []; },
+        };
+      },
+
+      /* every role on a real time axis, with the tools named in it; a cursor replays the career */
+      experience(el) {
+        const roles = (S.experience.items || []).map((it) => {
+          const ys = (String(it.dates || "").match(/\b(?:19|20)\d{2}\b/g) || []).map(Number);
+          const to = /present|now|current/i.test(it.dates || "") ? thisYear : ys[1] || ys[0];
+          return { from: ys[0], to, title: String(it.title || ""), org: String(it.org || ""), text: `${it.title || ""} ${it.text || ""}` };
+        }).filter((r) => r.from).sort((a, b) => a.from - b.from);
+        if (!roles.length) return null;
+        const tools = [];
+        (S.skills.groups || []).forEach((g) => (g.items || []).forEach((it) => String(it).split("/").forEach((s) => {
+          const n = s.trim().replace(/\s+\d+(\.\d+)*$/, "");
+          if (n && !tools.some((x) => x.toLowerCase() === n.toLowerCase())) tools.push(n);
+        })));
+        const reOf = (s) => new RegExp("(^|[^a-z0-9])" + s.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)");
+        roles.forEach((r) => { r.tools = tools.filter((t) => reOf(t).test(r.text.toLowerCase())); });
+        const used = new Set(roles.flatMap((r) => r.tools));
+        const y0 = roles[0].from, y1 = Math.max(thisYear, ...roles.map((r) => r.to)), span = Math.max(1, y1 - y0);
+        const W = 440, L = 12, R = 428, lane = 46, top = 26, H = top + roles.length * lane + 28;
+        const X = (y) => L + ((y - y0) / span) * (R - L);
+        const step = span > 8 ? 2 : 1;
+        let years = "";
+        for (let y = y0; y <= y1; y++) {
+          years += `<path class="yr" d="M${X(y).toFixed(1)} ${top - 6} V${H - 24}"/>`;
+          if ((y - y0) % step === 0 || y === y1) years += T(X(y), H - 10, y === y1 ? "now" : String(y), "fade", y === y0 ? "start" : y === y1 ? "end" : "middle", 0.1);
+        }
+        const lanes = roles.map((r, i) => {
+          const yy = top + i * lane, x = X(r.from), w = Math.max(18, X(r.to) - x);
+          const label = `${r.title}${r.org ? ` · ${r.org}` : ""}`;
+          const anchorEnd = x + label.length * 5.4 > R;
+          return `<g class="lane" data-from="${r.from}" data-to="${r.to}">
+            ${T(anchorEnd ? R : x, yy + 2, clip(label, 70), "rt fade", anchorEnd ? "end" : "start", 0.3 + i * 0.15)}
+            <rect class="bar" x="${x.toFixed(1)}" y="${yy + 8}" width="${w.toFixed(1)}" height="8" rx="2" style="--o:${(0.35 + (0.6 * (i + 1)) / roles.length).toFixed(2)};--d:${(0.2 + i * 0.18).toFixed(2)}s"/>
+            ${T(anchorEnd ? R : x, yy + 30, r.tools.slice(0, 6).join(" · ").toLowerCase(), "tech fade", anchorEnd ? "end" : "start", 0.6 + i * 0.15)}</g>`;
+        }).join("");
+        el.innerHTML = panel("career.log", `<span class="live">now · ${esc(clip(roles[roles.length - 1].title, 28))}</span>`,
+          svg(W, H, `${years}${lanes}<g class="cursor fade" style="--d:1.2s"><path d="M0 ${top - 10} V${H - 24}"/><rect class="cursor-tag" x="-17" y="${top - 22}" width="34" height="13" rx="3"/><text class="cursor-t" x="0" y="${top - 12.5}" text-anchor="middle">${y1}</text></g>`),
+          `<span>${roles.length} roles</span><span>${y1 - y0} years</span><span>${used.size} tools named in the work</span>`);
+        const cursor = $(".cursor", el), label = $(".cursor-t", el), gs = $$(".lane", el);
+        let raf = 0, running = false, timer = 0;
+        const place = (y) => {
+          cursor.setAttribute("transform", `translate(${X(Math.min(y1, y)).toFixed(1)} 0)`);
+          label.textContent = Math.floor(Math.min(y1, y));
+          gs.forEach((g) => { const on = y >= +g.dataset.from && y <= +g.dataset.to + 0.999; g.classList.toggle("cur", on); g.classList.toggle("dim", !on); });
+        };
+        function sweep() {
+          const begin = performance.now(), dur = 900 * span;
+          (function tick() {
+            if (!running) return;
+            const f = Math.min(1, Math.max(0, (performance.now() - begin) / dur));
+            place(y0 + f * span);
+            if (f < 1) raf = requestAnimationFrame(tick);
+            else timer = setTimeout(() => { if (running) sweep(); }, 3200);
+          })();
+        }
+        place(y1);
+        return {
+          start() { if (running) return; running = true; if (reduceMotion) return place(y1); timer = setTimeout(sweep, 1400); },
+          stop() { running = false; cancelAnimationFrame(raf); clearTimeout(timer); },
+        };
+      },
+
+      /* every skill as a node; each project lights the tools it was built with */
+      skills(el) {
+        const groups = (S.skills.groups || []).filter((g) => (g.items || []).length).slice(0, 6);
+        const pool = projects.filter((p) => (p.tags || []).length);
+        if (!groups.length || !pool.length) return null;
+        const W = 440, colW = W / groups.length, rowH = 17, top = 40;
+        const rows = Math.min(8, Math.max(...groups.map((g) => g.items.length)));
+        const H = top + rows * rowH;
+        const nodes = [];
+        groups.forEach((g, gi) => g.items.slice(0, rows).forEach((it, ri) => nodes.push({
+          gi, x: gi * colW + 6, y: top + ri * rowH, keys: String(it).split("/").map(norm), label: String(it),
+        })));
+        const heads = groups.map((g, gi) => T(gi * colW + 2, 16, clip(g.name.split("/")[0].trim(), 10), "gh fade", "start", 0.1 + gi * 0.06)).join("");
+        const dots = nodes.map((n, i) => `<circle class="sn fade" style="--d:${(0.2 + n.gi * 0.08).toFixed(2)}s" data-i="${i}" cx="${n.x}" cy="${n.y}" r="2.6"/>
+          <text class="nl fade" style="--d:${(0.25 + n.gi * 0.08).toFixed(2)}s" data-i="${i}" x="${n.x + 7}" y="${n.y + 3}">${esc(clip(n.label, 11))}</text>`).join("");
+        el.innerHTML = panel(`pick --for <span class="s-name"></span>`, `<span class="live s-count"></span>`,
+          svg(W, H, `<path class="axis" d="M0 24 H${W}"/>${heads}<path class="sm-path" pathLength="1" d=""/>${dots}`),
+          `<span class="s-out"></span><span class="push s-extra"></span>`);
+        const path = $(".sm-path", el), circles = $$(".sn", el), labels = $$(".nl", el);
+        let k = 0, timer = 0, running = false;
+        function show(p) {
+          const tags = (p.tags || []).map(norm);
+          const lit = nodes.map((n, i) => (n.keys.some((key) => tags.includes(key)) ? i : -1)).filter((i) => i >= 0);
+          const hit = new Set(lit.flatMap((i) => nodes[i].keys));
+          circles.forEach((c, i) => c.classList.toggle("lit", lit.includes(i)));
+          labels.forEach((t, i) => t.classList.toggle("lit", lit.includes(i)));
+          const pts = lit.map((i) => nodes[i]).sort((a, b) => a.gi - b.gi || a.y - b.y);
+          let d = pts.length ? `M${pts[0].x} ${pts[0].y}` : "";
+          for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i], mx = (a.x + b.x) / 2; d += ` C${mx} ${a.y} ${mx} ${b.y} ${b.x} ${b.y}`; }
+          path.setAttribute("d", d);
+          path.classList.remove("go"); void path.getBoundingClientRect(); path.classList.add("go");
+          $(".s-name", el).textContent = slugify(p.title);
+          $(".s-count", el).textContent = `${lit.length} of ${nodes.length} tools`;
+          $(".s-out", el).textContent = clip(p.outcome || p.blurb, 64);
+          const extra = (p.tags || []).filter((t) => !hit.has(norm(t)));
+          $(".s-extra", el).textContent = extra.length ? `+ ${extra.slice(0, 2).join(", ")}` : "";
+        }
+        function next() { if (!running) return; show(pool[k++ % pool.length]); timer = setTimeout(next, 3400); }
+        return {
+          start() { if (running) return; running = true; if (reduceMotion) return show(pool[0]); next(); },
           stop() { running = false; clearTimeout(timer); },
         };
       },
+
+      /* the team as a hub: work comes in from one function and goes out, shipped, to another */
       about(el) {
-        const team = S.about.team || [];
-        const lanes = [team[0] || "product", "me", team[2] || team[1] || "data"];
-        const me = "M70 146 C90 146 90 72 110 72 H244 C264 72 264 146 284 146";
-        el.innerHTML = svg(`<path class="ln draw" pathLength="1" style="--d:0s" d="M16 146 H292"/>
-          <path class="ln draw" pathLength="1" style="--d:.3s" d="M40 146 C60 146 60 36 80 36 H196 C216 36 216 146 236 146"/>
-          <path class="ln acc draw" pathLength="1" style="--d:.5s" d="${me}"/>
-          <path class="ln draw" pathLength="1" style="--d:.7s" d="M100 146 C120 146 120 108 140 108 H212 C230 108 230 146 250 146"/>
-          <circle class="node fade" style="--d:1.0s" cx="128" cy="36" r="4"/><circle class="node fade" style="--d:1.1s" cx="168" cy="36" r="4"/>
-          <circle class="node acc fade" style="--d:1.2s" cx="146" cy="72" r="4"/><circle class="node acc fade" style="--d:1.3s" cx="186" cy="72" r="4"/><circle class="node acc fade" style="--d:1.4s" cx="222" cy="72" r="4"/>
-          <circle class="node fade" style="--d:1.25s" cx="176" cy="108" r="4"/>
-          <circle class="node fade" style="--d:1.5s" cx="236" cy="146" r="4"/><circle class="node fade" style="--d:1.55s" cx="250" cy="146" r="4"/><circle class="node acc fade" style="--d:1.6s" cx="284" cy="146" r="4"/>
-          ${T(84, 28, lanes[0], "fade", "start", 0.6)}${T(114, 64, lanes[1], "fade accent", "start", 0.7)}${T(144, 100, lanes[2], "fade", "start", 0.8)}${T(16, 166, "main", "fade", "start", 0.2)}
-          <g class="tag fade" style="--d:1.9s"><rect x="296" y="136" width="56" height="20" rx="4"/>${T(324, 150, "shipped", "tag-t", "middle")}</g>
-          <circle class="flow" r="3"><animateMotion dur="4.5s" repeatCount="indefinite" path="${me}"/></circle>`, 172);
+        const team = (S.about.team || []).slice(0, 8);
+        if (!team.length) return null;
+        const W = 440, H = 214, cx = 220, cy = 104, rx = 170, ry = 76;
+        const pts = team.map((t, i) => {
+          const a = -Math.PI / 2 + (i * 2 * Math.PI) / team.length;
+          return { t, x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) };
+        });
+        const pills = pts.map((p, i) => {
+          const w = Math.max(44, String(p.t).length * 6.2 + 18);
+          return `<g class="pill fade" style="--d:${(0.4 + i * 0.08).toFixed(2)}s" data-i="${i}"><rect x="${(p.x - w / 2).toFixed(1)}" y="${(p.y - 10).toFixed(1)}" width="${w.toFixed(1)}" height="20" rx="10"/>${T(p.x.toFixed(1), (p.y + 3.5).toFixed(1), p.t, "", "middle")}</g>`;
+        }).join("");
+        const spokes = pts.map((p, i) => `<path class="spoke draw" pathLength="1" style="--d:${(0.1 + i * 0.06).toFixed(2)}s" data-i="${i}" d="M${cx} ${cy} L${p.x.toFixed(1)} ${p.y.toFixed(1)}"/>`).join("");
+        el.innerHTML = panel("team.graph", `<span class="live">${team.length} functions</span>`,
+          svg(W, H, `<ellipse class="orbit" cx="${cx}" cy="${cy}" rx="${rx + 16}" ry="${ry + 16}"/><ellipse class="orbit in" cx="${cx}" cy="${cy}" rx="${rx * 0.55}" ry="${ry * 0.55}"/>
+            ${spokes}${pills}
+            <circle class="pulse" cx="${cx}" cy="${cy}" r="24"/><circle class="hub" cx="${cx}" cy="${cy}" r="24"/>${T(cx, cy + 4.5, S.meta.initials || "me", "hub-t", "middle")}
+            <circle class="packet" r="3.2" cx="${cx}" cy="${cy}" opacity="0"/>`),
+          `<span class="a-flow">request → build → ship</span><span class="push">the team ships</span>`);
+        const packet = $(".packet", el), flow = $(".a-flow", el), spokeEls = $$(".spoke", el), pillEls = $$(".pill", el);
+        let raf = 0, timer = 0, running = false, k = 0;
+        const move = (a, b, dur, done) => {
+          const begin = performance.now();
+          (function tick() {
+            if (!running) return;
+            const f = Math.min(1, (performance.now() - begin) / dur), e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+            packet.setAttribute("cx", (a.x + (b.x - a.x) * e).toFixed(1)); packet.setAttribute("cy", (a.y + (b.y - a.y) * e).toFixed(1));
+            if (f < 1) raf = requestAnimationFrame(tick); else done();
+          })();
+        };
+        const mark = (i, cls, on) => { spokeEls[i].classList.toggle("lit", on); pillEls[i].classList.toggle(cls, on); };
+        function exchange() {
+          if (!running) return;
+          const from = k % pts.length, to = (k + 1 + Math.floor(pts.length / 2)) % pts.length; k++;
+          const hub = { x: cx, y: cy };
+          packet.setAttribute("opacity", "1"); packet.classList.remove("ok");
+          mark(from, "lit", true); flow.textContent = `${pts[from].t} → ${S.meta.initials || "me"} → ${pts[to].t}`;
+          move(pts[from], hub, 900, () => {
+            mark(from, "lit", false);
+            packet.classList.add("ok"); spokeEls[to].classList.add("lit");
+            move(hub, pts[to], 900, () => {
+              mark(to, "ok", true); spokeEls[to].classList.remove("lit"); packet.setAttribute("opacity", "0");
+              timer = setTimeout(() => { pillEls[to].classList.remove("ok"); exchange(); }, 900);
+            });
+          });
+        }
+        return {
+          start() { if (running) return; running = true; if (!reduceMotion) timer = setTimeout(exchange, 900); },
+          stop() { running = false; cancelAnimationFrame(raf); clearTimeout(timer); packet.setAttribute("opacity", "0"); },
+        };
       },
     };
     const loops = new Map();
@@ -626,9 +828,79 @@ function start(S, route, stacks) {
       head.classList.add("has-art"); head.appendChild(art);
       art.style.gridRow = `1 / span ${Math.max(rows, 1)}`;
       const ctl = builders[id](art);
+      if (ctl === null && !art.innerHTML) { art.remove(); head.classList.remove("has-art"); return; }
       if (ctl) loops.set(art, ctl);
       artIO.observe(art);
     });
+  })();
+
+  /* ---------- background: the page as one main branch; each section merges in, ending at shipped ---------- */
+  (function pathToSuccess() {
+    if (route) return;
+    const main = $("main"), host = document.createElement("div");
+    host.className = "bg-graph"; host.setAttribute("aria-hidden", "true");
+    document.body.insertBefore(host, main);
+    let state = null, queued = false;
+    const docY = (el) => el.getBoundingClientRect().top + window.scrollY;
+    function build() {
+      const wrap = $(".section .wrap") || $(".wrap");
+      const gutter = wrap.getBoundingClientRect().left;
+      if (gutter < 72) { host.hidden = true; state = null; return; }
+      host.hidden = false;
+      const x = Math.round(gutter > 220 ? gutter - 96 : gutter - 46), bx = x + 22;
+      const band = $(".pipeline-band"), contact = $("#contact");
+      const yStart = band ? docY(band) + band.offsetHeight + 24 : 120;
+      const yGoal = contact ? docY(contact) + 120 : main.offsetHeight - 200;
+      const height = docY(main) + main.offsetHeight;
+      const showLabels = x > 90;
+      const secs = $$("main > section.section:not([hidden])").filter((s) => s.id && s.id !== "contact");
+      let out = "", nodes = [];
+      secs.forEach((s, i) => {
+        const t = docY(s), b = t + s.offsetHeight, f = t + 36, m = b - 36;
+        if (m - f < 160) return;
+        const d = `M${x} ${f} C${x} ${f + 22} ${bx} ${f + 12} ${bx} ${f + 34} V${m - 34} C${bx} ${m - 12} ${x} ${m - 22} ${x} ${m}`;
+        out += `<path class="g-br" data-y="${m}" d="${d}"/>`;
+        const n = Math.min(6, Math.max(1, Math.floor((m - f - 120) / 130)));
+        for (let j = 1; j <= n; j++) {
+          const cy = f + 40 + ((m - f - 80) * j) / (n + 1);
+          out += `<circle class="g-c" data-y="${cy.toFixed(0)}" cx="${bx}" cy="${cy.toFixed(0)}" r="2.6"/>`;
+        }
+        out += `<circle class="g-m" data-y="${m}" cx="${x}" cy="${m}" r="4"/>`;
+        const name = ($(".eyebrow", s) || {}).textContent || s.id;
+        if (showLabels) out += `<text class="g-t" data-y="${m}" x="${x - 12}" y="${m + 3}" text-anchor="end">${esc(clip(name.trim(), 16))}</text>`;
+        if (!reduceMotion) out += `<circle class="g-p" r="2"><animateMotion dur="${(5 + i * 0.7).toFixed(1)}s" repeatCount="indefinite" path="${d}"/></circle>`;
+        nodes.push(m);
+      });
+      const goal = `<circle class="g-goal" cx="${x}" cy="${yGoal}" r="8"/><path class="g-check" d="M${x - 3.5} ${yGoal} l2.5 2.6 l4.6 -5"/>
+        ${showLabels ? `<text class="g-goal-t" x="${x - 16}" y="${yGoal + 3}" text-anchor="end">shipped</text>` : ""}`;
+      host.innerHTML = `<svg width="${x + 40}" height="${height}" viewBox="0 0 ${x + 40} ${height}">
+        <path class="g-main" d="M${x} ${yStart} V${yGoal}"/><line class="g-fill" x1="${x}" y1="${yStart}" x2="${x}" y2="${yStart}"/>
+        <circle class="g-m on" cx="${x}" cy="${yStart}" r="4"/>${showLabels ? `<text class="g-t on" x="${x - 12}" y="${yStart + 3}" text-anchor="end">first commit</text>` : ""}
+        ${out}${goal}<circle class="g-ring" cx="${x}" cy="${yStart}" r="4"/><circle class="g-head" cx="${x}" cy="${yStart}" r="3.5"/></svg>`;
+      state = {
+        yStart, yGoal,
+        fill: $(".g-fill", host), head: $(".g-head", host), ring: $(".g-ring", host),
+        marks: $$("[data-y]", host), goal: [$(".g-goal", host), $(".g-check", host), $(".g-goal-t", host)].filter(Boolean),
+      };
+      update();
+    }
+    function update() {
+      queued = false;
+      if (!state) return;
+      const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
+      const y = atEnd ? state.yGoal : Math.min(state.yGoal, Math.max(state.yStart, window.scrollY + window.innerHeight * 0.55));
+      state.fill.setAttribute("y2", y.toFixed(0));
+      state.head.setAttribute("cy", y.toFixed(0)); state.ring.setAttribute("cy", y.toFixed(0));
+      state.marks.forEach((m) => m.classList.toggle("on", +m.dataset.y <= y));
+      state.goal.forEach((g) => g.classList.toggle("on", y >= state.yGoal - 1));
+    }
+    let rt = 0;
+    const rebuild = () => { clearTimeout(rt); rt = setTimeout(build, 150); };
+    addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+    addEventListener("resize", rebuild);
+    if ("ResizeObserver" in window) new ResizeObserver(rebuild).observe(main);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(rebuild);
+    build();
   })();
 
   /* ---------- contact ---------- */
@@ -649,6 +921,9 @@ function start(S, route, stacks) {
 (async function boot() {
   const raw = await loadSite();
   if (!raw) { document.body.insertAdjacentHTML("afterbegin", '<p style="padding:2rem">Could not load site data.</p>'); return; }
+  intro(raw);
+  // let the intro paint its first frame before the page is built underneath it
+  if (document.documentElement.classList.contains("intro")) await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   const S = fillCounts(raw, await siteCounts(raw));
   const route = stackRoute();
   const stacks = stackIndex(S);
