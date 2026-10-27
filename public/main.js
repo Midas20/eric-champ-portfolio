@@ -319,20 +319,21 @@ function loaded() {
 /* ================================================================== */
 /* first visit: a change runs the pipeline to shipped, then the page opens */
 /* ================================================================== */
-const dotWord = (S) => String((S.hero && S.hero.dotWord) || String((S.meta && S.meta.role) || "").trim().split(/\s+/).pop() || "").toUpperCase().slice(0, 14);
+// three fields of IT for this visit, in a random order (the list lives in index.html, shared with the loading screen)
+const introFields = (window.IT_FIELDS || []).map((f) => [Math.random(), f]).sort((a, b) => a[0] - b[0]).slice(0, 3).map((x) => x[1]);
 let endIntro = () => {};
 function intro(S, role) {
   const root = document.documentElement;
   if (!root.classList.contains("intro")) return;
   try { sessionStorage.setItem("intro", "1"); } catch (e) {}
   // with WebGL the hero particles spell a dotted word (hero-gl.js); without it, a change runs the pipeline
-  const word = !!window.WebGL2RenderingContext && !!window.heroParticles && dotWord(S);
+  const word = !!window.WebGL2RenderingContext && !!window.heroParticles && introFields.length > 0;
   const stages = (S.pipeline.stages || []).slice(0, 7);
   if (!word && !stages.length) { root.classList.remove("intro"); return; }
   const el = document.createElement("div");
   el.className = "intro-screen"; el.setAttribute("aria-hidden", "true");
   const name = `<p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(role || S.meta.role)}</span></p>`;
-  if (word) { root.classList.add("intro-word"); el.innerHTML = `<div class="i-word">${name}<p class="i-skip">Click to skip</p></div>`; }
+  if (word) { root.classList.add("intro-word"); el.innerHTML = `<div class="i-word"><p class="i-field"></p>${name}<p class="i-skip">Click to skip</p></div>`; }
   else el.innerHTML = `<div class="i-wrap">
     <ol class="i-track" style="--n:${stages.length}">${stages.map((s, i) => `<li style="--i:${i}"><i></i><span>${esc(s)}</span></li>`).join("")}<b class="i-fill"></b></ol>
     ${name}</div>`;
@@ -349,7 +350,7 @@ function intro(S, role) {
   };
   endIntro = finish;
   skip.forEach((e) => addEventListener(e, finish, { passive: true }));
-  setTimeout(finish, word ? 2900 : 1100 + stages.length * 240);
+  setTimeout(finish, word ? 300 + introFields.length * 1000 : 1100 + stages.length * 240);
 }
 
 /* ================================================================== */
@@ -567,9 +568,10 @@ function start(S, route, stacks) {
       canvas, anchor, layers: (S.hero.layers || []).length || 5, getActive: () => heroLayer.cur, reduceMotion,
       waitFor: () => document.documentElement.classList.contains("intro"),
       instant: document.documentElement.classList.contains("seen"),
-      word: dotWord(S),
+      shapes: introFields.map((f) => f.d),
+      onShape: (i) => { const el = $(".i-field"); if (el) { el.textContent = introFields[i].label; el.classList.remove("swap"); void el.offsetWidth; el.classList.add("swap"); } },
     });
-    if (!ctl) { endIntro(); return; }   // no WebGL: nothing to spell the word with
+    if (!ctl) { endIntro(); return; }   // no WebGL: nothing to build the symbols with
     $(".hero").classList.add("gl-on");
     const prev = strata;
     strata = { recolor() { prev.recolor(); ctl.recolor(); } };

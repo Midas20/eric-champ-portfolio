@@ -455,8 +455,12 @@ html.intro .hero, html.intro .hero * { animation-play-state: paused !important; 
 html.intro-word #heroGL { visibility: visible; }
 html.intro-word .intro-screen { background: transparent; }
 .intro-screen.out .i-word { opacity: 0; transform: translateY(-10px); }
-.i-word { position: absolute; left: 0; right: 0; top: 60%; display: grid; justify-items: center; gap: 1.6rem; transition: opacity 0.4s, transform 0.4s; }
-html.intro-word .i-name { animation-delay: 0.7s; }
+.i-word { position: absolute; left: 0; right: 0; top: 61%; display: grid; justify-items: center; gap: 1.6rem; transition: opacity 0.4s, transform 0.4s; }
+html.intro-word .i-name { animation-delay: 0.5s; }
+.i-field { margin: 0; min-height: 1.2em; font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+.i-field.swap { animation: i-swap 0.5s var(--ease); }
+@keyframes i-swap { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .i-skip { margin: 0; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); opacity: 0; animation: fade-up 0.6s var(--ease) 1.4s forwards; }
 .intro-screen {
   position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg);

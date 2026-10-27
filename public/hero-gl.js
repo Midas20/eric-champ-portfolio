@@ -1,7 +1,7 @@
 /* ==================================================================
    Hero particles (WebGL2, no dependencies)
-   On a first visit the particles first spell a big dotted word (the rest
-   twinkle as stars), then flow from the word into the layer stack.
+   On a first visit the particles build a few symbols of IT fields one
+   after another (the rest twinkle as stars), then flow into the layer stack.
    A loose cloud of particles pulls together into the layer stack, the
    stack turns and follows the pointer, the layer in the caption glows,
    and on scroll the particles pour down into the pipeline line.
@@ -11,8 +11,8 @@
 (function () {
   const VERT = `#version 300 es
   in vec3 aSphere; in vec3 aStack; in float aLineX; in vec4 aSeed;   // seed: random, layer 0..1, size, edge
-  in vec3 aWord;                                                      // word phase: x, y (clip space), 1 = part of the word, 0 = a star
-  uniform float uTime, uAssemble, uFlow, uRot, uActive, uLayers, uDpr, uLineY, uWord, uDot;
+  in vec3 aShapeA; in vec3 aShapeB;                                   // symbol phase: x, y (clip space), 1 = on the symbol, 0 = a star; A morphs into B
+  uniform float uTime, uAssemble, uFlow, uRot, uActive, uLayers, uDpr, uLineY, uWord, uMorph;
   uniform vec2 uCenter, uCloud, uK, uTilt;
   out float vAlpha; out float vHot; out float vWord; out float vX;
   vec3 rotY(vec3 p, float a) { float c = cos(a), s = sin(a); return vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z); }
@@ -43,10 +43,12 @@
     // word phase: word particles sit on a dot grid, the others twinkle where they are put
     float w = smoothstep(r * 0.35, r * 0.35 + 0.65, uWord);
     float twinkle = 0.25 + 0.3 * (0.5 + 0.5 * sin(uTime * 2.2 + r * 60.0));
-    gl_Position = vec4(mix(q, aWord.xy, w), 0.0, 1.0);
-    gl_PointSize = mix(size, aWord.z > 0.5 ? uDot : 1.4 * uDpr, w);
-    vAlpha = mix(alpha, aWord.z > 0.5 ? 0.95 : twinkle, w);
-    vWord = w * aWord.z; vX = aWord.x * 0.5 + 0.5;
+    vec3 sh = mix(aShapeA, aShapeB, smoothstep(r * 0.45, r * 0.45 + 0.55, uMorph));
+    sh.xy += vec2(sin(uTime * 1.3 + r * 40.0), cos(uTime * 1.1 + r * 30.0)) * 0.002 * sh.z;   // the symbol shimmers a little
+    gl_Position = vec4(mix(q, sh.xy, w), 0.0, 1.0);
+    gl_PointSize = mix(size, sh.z > 0.5 ? (1.6 + aSeed.z * 0.6) * uDpr : 1.4 * uDpr, w);
+    vAlpha = mix(alpha, sh.z > 0.5 ? 0.9 : twinkle, w);
+    vWord = w * sh.z; vX = sh.x * 0.5 + 0.5;
   }`;
   const FRAG = `#version 300 es
   precision mediump float;
@@ -64,7 +66,7 @@
   const ease = (t) => 1 - Math.pow(1 - t, 3);
 
   window.heroParticles = function heroParticles(opts) {
-    const { canvas, anchor, layers = 5, getActive = () => 0, reduceMotion = false, waitFor = () => false, instant = false, word = "" } = opts;
+    const { canvas, anchor, layers = 5, getActive = () => 0, reduceMotion = false, waitFor = () => false, instant = false, shapes = [], onShape = () => {} } = opts;
     const gl = canvas.getContext("webgl2", { alpha: true, premultipliedAlpha: false, antialias: false, powerPreference: "high-performance" });
     if (!gl) return null;
 
@@ -114,32 +116,38 @@
     };
     const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
     attr("aSphere", sphere, 3); attr("aStack", stack, 3); attr("aLineX", lineX, 1); attr("aSeed", seed, 4);
-    const wordPts = new Float32Array(N * 3), wordBuf = attr("aWord", wordPts, 3);
-    const U = Object.fromEntries(["uTime", "uAssemble", "uFlow", "uRot", "uActive", "uLayers", "uDpr", "uLineY", "uWord", "uDot", "uCenter", "uCloud", "uK", "uTilt", "uColor", "uHotColor", "uColor2"].map((n) => [n, gl.getUniformLocation(prog, n)]));
+    const shapeA = new Float32Array(N * 3), shapeB = new Float32Array(N * 3), bufA = attr("aShapeA", shapeA, 3), bufB = attr("aShapeB", shapeB, 3);
+    const U = Object.fromEntries(["uTime", "uAssemble", "uFlow", "uRot", "uActive", "uLayers", "uDpr", "uLineY", "uWord", "uMorph", "uCenter", "uCloud", "uK", "uTilt", "uColor", "uHotColor", "uColor2"].map((n) => [n, gl.getUniformLocation(prog, n)]));
 
-    /* ---------- the word: rendered once to a hidden canvas, read back as a grid of dots ---------- */
-    const wordMode = !!word && !instant && !reduceMotion && waitFor();
-    function buildWord() {
-      if (!wordMode) return;
-      const c2 = document.createElement("canvas"), ctx = c2.getContext("2d", { willReadFrequently: true });
-      c2.width = Math.max(1, Math.round(W)); c2.height = Math.max(1, Math.round(H));
-      const font = (px) => `700 ${px}px Geist, "Segoe UI", system-ui, sans-serif`;
-      ctx.font = font(100);
-      const fit = Math.min((Math.min(W * 0.9, 1240) / Math.max(1, ctx.measureText(word).width)) * 100, H * 0.3);
-      ctx.font = font(fit); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = ctx.strokeStyle = "#fff"; ctx.lineWidth = fit * 0.05;
-      const wy = Math.min(H, innerHeight) * 0.43;   // middle of the first screen, above the name
-      ctx.fillText(word, W / 2, wy); ctx.strokeText(word, W / 2, wy);   // a stroke thickens the letters so each stem is several dots wide
-      const step = Math.max(4, Math.round(fit / 20)), img = ctx.getImageData(0, 0, c2.width, c2.height).data, pts = [];
-      for (let y = step / 2; y < c2.height; y += step) for (let x = step / 2; x < c2.width; x += step) if (img[(Math.floor(y) * c2.width + Math.floor(x)) * 4 + 3] > 140) pts.push([x / W * 2 - 1, 1 - y / H * 2]);
+    /* ---------- symbols: each drawn once to a hidden canvas, then particles are scattered along its strokes ---------- */
+    const shapeMode = shapes.length > 0 && !instant && !reduceMotion && waitFor();
+    const SHAPE_SHARE = 0.45;   // the rest of the particles twinkle as stars
+    function sample(paths, out) {
+      const size = Math.min(Math.min(H, innerHeight) * 0.38, W * 0.55), cx = W / 2, cy = Math.min(H, innerHeight) * 0.4;
+      const box = Math.ceil(size * 1.2), c2 = document.createElement("canvas"), ctx = c2.getContext("2d", { willReadFrequently: true });
+      c2.width = c2.height = Math.max(1, box);
+      ctx.translate((box - size) / 2, (box - size) / 2); ctx.scale(size / 24, size / 24);
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.lineCap = ctx.lineJoin = "round";
+      paths.forEach((d) => ctx.stroke(new Path2D(d)));
+      const img = ctx.getImageData(0, 0, box, box).data, px = [];
+      for (let y = 0; y < box; y += 2) for (let x = 0; x < box; x += 2) if (img[(y * box + x) * 4 + 3] > 120) px.push(x, y);
+      const n = px.length / 2, M = Math.floor(N * SHAPE_SHARE), x0 = cx - box / 2, y0 = cy - box / 2;
       for (let k = 0; k < N; k++) {
-        const pt = k < Math.min(pts.length, Math.floor(N * 0.85)) ? pts[k] : null;
-        wordPts.set(pt ? [pt[0], pt[1], 1] : [Math.random() * 2 - 1, Math.random() * 2 - 1, 0], k * 3);
+        if (k < M && n) {
+          const j = Math.floor(Math.random() * n) * 2, x = x0 + px[j] + Math.random() * 2, y = y0 + px[j + 1] + Math.random() * 2;
+          out.set([x / W * 2 - 1, 1 - y / H * 2, 1], k * 3);
+        } else out.set([Math.random() * 2 - 1, Math.random() * 2 - 1, 0], k * 3);
       }
-      // more dots than particles: spread the particles over the whole word, not just its first letters
-      if (pts.length > N * 0.85) for (let k = 0; k < Math.floor(N * 0.85); k++) { const pt = pts[Math.floor(k * pts.length / (N * 0.85))]; wordPts.set([pt[0], pt[1], 1], k * 3); }
-      gl.bindBuffer(gl.ARRAY_BUFFER, wordBuf); gl.bufferData(gl.ARRAY_BUFFER, wordPts, gl.STATIC_DRAW);
-      gl.uniform1f(U.uDot, step * 0.9 * dpr);
     }
+    let shapeIdx = -1, morphStart = 0;
+    const upload = () => { gl.bindBuffer(gl.ARRAY_BUFFER, bufA); gl.bufferData(gl.ARRAY_BUFFER, shapeA, gl.STATIC_DRAW); gl.bindBuffer(gl.ARRAY_BUFFER, bufB); gl.bufferData(gl.ARRAY_BUFFER, shapeB, gl.STATIC_DRAW); };
+    function toShape(i, now) {
+      if (i === shapeIdx) return;
+      if (shapeIdx < 0) { sample(shapes[i], shapeB); shapeA.set(shapeB); }
+      else { shapeA.set(shapeB); sample(shapes[i], shapeB); }
+      shapeIdx = i; morphStart = now; upload(); onShape(i);
+    }
+    function resample() { if (shapeMode && shapeIdx >= 0) { sample(shapes[shapeIdx], shapeB); shapeA.set(shapeB); upload(); } }
     gl.uniform1f(U.uLayers, layers);
 
     /* ---------- colours follow the theme ---------- */
@@ -173,21 +181,24 @@
       gl.uniform2f(U.uK, k / (W / 2), k / (H / 2));
       gl.uniform1f(U.uDpr, dpr);
       gl.uniform1f(U.uLineY, -1 + 6 / H);
-      buildWord();
+      resample();
       if (!running) frame(performance.now());
     }
 
     /* ---------- state ---------- */
     const t0 = performance.now();
     let assembleStart = null, running = false, raf = 0, visible = true, rot = 0, last = t0, active = 0, release = null;
+    const SHAPE_MS = 1000;   // each symbol holds about a second
     const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
     function frame(now) {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      if (assembleStart === null && !waitFor()) { assembleStart = now + (wordMode ? 350 : 150); release = now; }
+      if (assembleStart === null && !waitFor()) { assembleStart = now + (shapeMode ? 350 : 150); release = now; }
       const asm = reduceMotion || instant ? 1 : assembleStart === null ? 0 : ease(Math.min(1, Math.max(0, (now - assembleStart) / 2200)));
-      // word: gathers while the intro runs, then lets go so the dots flow on into the stack
-      const wd = !wordMode ? 0 : release === null ? ease(Math.min(1, (now - t0) / 1300)) : 1 - ease(Math.min(1, (now - release) / 1700));
+      // symbols: one after another while the intro runs, then the particles let go and flow on into the stack
+      if (shapeMode && release === null && W > 0) toShape(Math.min(shapes.length - 1, Math.max(0, Math.floor((now - t0) / SHAPE_MS))), now);   // a frame's timestamp can precede t0
+      const wd = !shapeMode ? 0 : release === null ? ease(Math.min(1, (now - t0) / 900)) : 1 - ease(Math.min(1, (now - release) / 1700));
       gl.uniform1f(U.uWord, wd);
+      gl.uniform1f(U.uMorph, shapeIdx <= 0 ? 1 : ease(Math.min(1, (now - morphStart) / 700)));
       const hero = canvas.parentElement.getBoundingClientRect();
       const flow = reduceMotion ? 0 : Math.min(1, Math.max(0, -hero.top / (hero.height * 0.75)));
       rot = reduceMotion ? 0 : Math.sin((now - t0) / 1000 * 0.35) * 0.2;   // a slow sway, not a spin
@@ -209,7 +220,6 @@
     recolor(); resize();
     addEventListener("resize", resize);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
-    if (wordMode && document.fonts && document.fonts.load) document.fonts.load("700 100px Geist").then(buildWord, () => {});
     addEventListener("pointermove", (e) => { tilt.tx = (e.clientX / innerWidth - 0.5) * 2; tilt.ty = (e.clientY / innerHeight - 0.5) * 2; }, { passive: true });
     new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible && !document.hidden ? play() : pause(); }).observe(canvas);
     document.addEventListener("visibilitychange", () => { document.hidden || !visible ? pause() : play(); });
