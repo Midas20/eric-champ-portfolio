@@ -20,7 +20,7 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":
 const safeUrl = (u) => {
   const s = String(u || "").trim();
   if (!s) return "#";
-  if (/^(https?:|mailto:|\/|#)/i.test(s)) return s;
+  if (/^(https?:|mailto:|\/(?!\/)|#)/i.test(s)) return s;   // "//host" would leave the site
   return "#";
 };
 const get = (obj, path) => path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
@@ -29,6 +29,13 @@ const get = (obj, path) => path.split(".").reduce((o, k) => (o == null ? undefin
 const slugify = (s) => String(s).toLowerCase()
   .replace(/\+/g, "-plus").replace(/#/g, "-sharp")
   .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+function projectRoute() {
+  if (typeof window.__PROJECT__ === "string") return window.__PROJECT__;
+  const mm = location.pathname.match(/^\/work\/([^/]+)\/?$/);
+  return mm ? decodeURIComponent(mm[1]) : null;
+}
+const pslug = (p) => slugify(p.slug || p.title || "");
 
 function stackRoute() {
   if (typeof window.__STACK__ === "string") return { slug: window.__STACK__ };
@@ -193,6 +200,13 @@ const ICON = {
   gallery: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
   case: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
   dot: '<circle cx="12" cy="12" r="3"/>',
+  abilities: '<path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.4"/>',
+  speed: '<path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.4"/>',
+  migrate: '<path d="M2 4h8v6H2zM14 14h8v6h-8z"/><path d="M6 10v3.5a2.5 2.5 0 0 0 2.5 2.5H13M11 14l2 2-2 2"/>',
+  scale: '<path d="M4 3h16v5H4zM4 9.5h16v5H4zM4 16h16v5H4z"/><path d="M7 5.5h.01M7 12h.01M7 18.5h.01"/>',
+  security: '<path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M9 12l2 2 4-4"/>',
+  ai: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 1.5V4M15 1.5V4M9 20v2.5M15 20v2.5M1.5 9H4M1.5 15H4M20 9h2.5M20 15h2.5"/><circle cx="9" cy="10" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="14" r="1.3"/><path d="M10.2 10.5l3.6 1.2M10.2 13.5l3.6-1.2"/>',
+  data: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
   github: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
   linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>',
   telegram: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
@@ -319,38 +333,67 @@ function loaded() {
 /* ================================================================== */
 /* first visit: a change runs the pipeline to shipped, then the page opens */
 /* ================================================================== */
-// AI first, then two other fields of IT in a random order (the list lives in index.html, shared with the loading screen)
-const introFields = ((F) => F.length ? [F[0], ...F.slice(1).map((f) => [Math.random(), f]).sort((a, b) => a[0] - b[0]).slice(0, 2).map((x) => x[1])] : [])(window.IT_FIELDS || []);
+// the intro tells who you are in three short lines: the first line always, then two of the others, a new pair each visit.
+// Each line is built from a symbol (index.html, window.IT_SYMBOLS); without lines, three fields of IT are shown.
+let introFields = [];
+const INTRO_MS = 1500;
+function pickIntro(S) {
+  const SYM = window.IT_SYMBOLS || {}, shuffle = (a) => a.map((x) => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map((x) => x[1]);
+  const lines = ((S.intro && S.intro.lines) || []).filter((l) => l && l.text && SYM[l.symbol]).map((l) => ({ label: l.text, key: l.area || SYM[l.symbol].label, d: SYM[l.symbol].d, line: true }));
+  if (lines.length) return [lines[0], ...shuffle(lines.slice(1)).slice(0, 2)];
+  const F = window.IT_FIELDS || [];
+  return F.length ? [F[0], ...shuffle(F.slice(1)).slice(0, 2)].map((f) => ({ ...f, key: f.label })) : [];
+}
 let endIntro = () => {};
 function intro(S, role) {
   const root = document.documentElement;
   if (!root.classList.contains("intro")) return;
   try { sessionStorage.setItem("intro", "1"); } catch (e) {}
-  // with WebGL the hero particles spell a dotted word (hero-gl.js); without it, a change runs the pipeline
-  const word = !!window.WebGL2RenderingContext && !!window.heroParticles && introFields.length > 0;
+  // a title card: who you are, then three short lines about what you do, each with its symbol drawn in;
+  // without lines, a change runs the pipeline to shipped
+  introFields = pickIntro(S);
   const stages = (S.pipeline.stages || []).slice(0, 7);
-  if (!word && !stages.length) { root.classList.remove("intro"); return; }
+  if (!introFields.length && !stages.length) { root.classList.remove("intro"); return; }
   const el = document.createElement("div");
   el.className = "intro-screen"; el.setAttribute("aria-hidden", "true");
-  const name = `<p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(role || S.meta.role)}</span></p>`;
-  if (word) { root.classList.add("intro-word"); el.innerHTML = `<div class="i-word"><p class="i-field"></p>${name}<p class="i-skip">Click to skip</p></div>`; }
-  else el.innerHTML = `<div class="i-wrap">
+  const who = role || S.meta.role;
+  if (introFields.length) {
+    root.classList.add("intro-card");
+    el.innerHTML = `<div class="ic">
+      <div class="ic-top"><span class="ic-brand"><b>${esc(S.meta.initials || "")}</b>${esc(S.meta.name)}</span><span class="ic-status"><i></i>${esc((S.hero && S.hero.eyebrow) || who)}</span></div>
+      <div class="ic-mid"><svg class="ic-sym" viewBox="0 0 24 24"></svg><p class="ic-k"></p><p class="ic-line"></p><p class="ic-role">${esc(who)}</p></div>
+      <div class="ic-bot"><ol class="ic-prog">${introFields.map((_, i) => `<li style="--i:${i}"><i></i></li>`).join("")}</ol><button type="button" class="ic-skip">Skip intro</button></div></div>`;
+  } else el.innerHTML = `<div class="i-wrap">
     <ol class="i-track" style="--n:${stages.length}">${stages.map((s, i) => `<li style="--i:${i}"><i></i><span>${esc(s)}</span></li>`).join("")}<b class="i-fill"></b></ol>
-    ${name}</div>`;
+    <p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(who)}</span></p></div>`;
   document.body.appendChild(el);
   loaded();   // the intro takes over from the loading screen
+  const timers = [];
+  if (introFields.length) {
+    el.style.setProperty("--ms", `${INTRO_MS}ms`);
+    const sym = $(".ic-sym", el), k = $(".ic-k", el), line = $(".ic-line", el);
+    const show = (i) => {
+      const f = introFields[i];
+      sym.innerHTML = f.d.map((d) => `<path pathLength="1" d="${esc(d)}"/>`).join("");
+      k.textContent = `${String(i + 1).padStart(2, "0")} / ${String(introFields.length).padStart(2, "0")} · ${f.key || ""}`;
+      line.textContent = f.label;
+      [sym, k, line].forEach((n) => { n.classList.remove("in"); void n.offsetWidth; n.classList.add("in"); });
+    };
+    introFields.forEach((_, i) => timers.push(setTimeout(() => show(i), 350 + i * INTRO_MS)));
+  }
   const skip = ["click", "keydown", "wheel", "touchstart"];
   let done = false;
   const finish = () => {
     if (done) return; done = true;
+    timers.forEach(clearTimeout);
     skip.forEach((e) => removeEventListener(e, finish));
     el.classList.add("out");
-    root.classList.remove("intro", "intro-word");
-    setTimeout(() => el.remove(), 800);
+    root.classList.remove("intro", "intro-card");
+    setTimeout(() => el.remove(), 900);
   };
   endIntro = finish;
   skip.forEach((e) => addEventListener(e, finish, { passive: true }));
-  setTimeout(finish, word ? 300 + introFields.length * 1000 : 1100 + stages.length * 240);
+  timers.push(setTimeout(finish, introFields.length ? 550 + introFields.length * INTRO_MS : 1100 + stages.length * 240));
 }
 
 /* ================================================================== */
@@ -461,8 +504,10 @@ function render(S, route, stacks) {
 /* ================================================================== */
 /* start: interactions and animations                                  */
 /* ================================================================== */
+let coverFor = () => "";
 function start(S, route, stacks) {
   const projects = S.work.projects || [];
+  const MARK = !!(S.config && S.config.markSamples);   // "Example" tags on sample data, off unless asked for
 
   /* ---------- theme ---------- */
   let strata = { recolor() {} };
@@ -568,21 +613,9 @@ function start(S, route, stacks) {
       canvas, anchor, layers: (S.hero.layers || []).length || 5, getActive: () => heroLayer.cur, reduceMotion,
       waitFor: () => document.documentElement.classList.contains("intro"),
       instant: document.documentElement.classList.contains("seen"),
-      shapes: introFields.map((f) => f.d),
-      onShape: (i) => { const el = $(".i-field"); if (el) { el.textContent = introFields[i].label; el.classList.remove("swap"); void el.offsetWidth; el.classList.add("swap"); } },
     });
-    if (!ctl) { endIntro(); return; }   // no WebGL: nothing to build the symbols with
-    $(".hero").classList.add("gl-on");
-    const prev = strata;
-    strata = { recolor() { prev.recolor(); ctl.recolor(); } };
-  })();
-
-  /* ---------- page particles: depth field on scroll, gathering into a check mark at Contact ---------- */
-  (function field() {
-    const canvas = $("#pageGL");
-    if (!canvas || !window.pageParticles || route || INLINE || reduceMotion) return;
-    const ctl = window.pageParticles({ canvas, goal: () => $(".bg-graph .g-goal"), hero: $(".hero") });   // gathers at the shipped node
     if (!ctl) return;
+    $(".hero").classList.add("gl-on");
     const prev = strata;
     strata = { recolor() { prev.recolor(); ctl.recolor(); } };
   })();
@@ -716,8 +749,8 @@ function start(S, route, stacks) {
     $("#caseResult").textContent = c.result || "";
     $("#caseMetric").textContent = p.metric ? p.metric.value : "";
     $("#caseMetricLabel").textContent = p.metric ? p.metric.label : "";
-    $("#caseLinks").innerHTML = `<a href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener">Live ↗</a><a href="${esc(safeUrl(p.repo))}" target="_blank" rel="noopener">Source ↗</a>`;
-    $("#caseSample").hidden = !p.sample;
+    $("#caseLinks").innerHTML = `<a href="/work/${pslug(p)}">Full story →</a><a href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener">Live ↗</a><a href="${esc(safeUrl(p.repo))}" target="_blank" rel="noopener">Source ↗</a>`;
+    $("#caseSample").hidden = !(p.sample && MARK);
     const base = `work.projects.${p._i}`;
     [["#caseTitle", "title"], ["#caseContext", "caseStudy.context"], ["#caseProblem", "caseStudy.problem"], ["#caseApproach", "caseStudy.approach"],
       ["#caseResult", "caseStudy.result"], ["#caseMetric", "metric.value"], ["#caseMetricLabel", "metric.label"]].forEach(([sel, k]) => { $(sel).dataset.path = `${base}.${k}`; });
@@ -731,10 +764,55 @@ function start(S, route, stacks) {
     box.innerHTML = refs.map((r, i) => `
       <figure class="ref reveal" style="--i:${i}">
         <blockquote data-path="references.items.${i}.quote">${esc(r.quote)}</blockquote>
-        <figcaption><strong data-path="references.items.${i}.name">${esc(r.name)}</strong><span class="muted" data-path="references.items.${i}.role">${esc(r.role)}</span>${r.sample ? '<span class="sample-tag">Example, replace with a real reference</span>' : ""}</figcaption>
+        <figcaption><strong data-path="references.items.${i}.name">${esc(r.name)}</strong><span class="muted" data-path="references.items.${i}.role">${esc(r.role)}</span>${r.sample && MARK ? '<span class="sample-tag">Example, replace with a real reference</span>' : ""}</figcaption>
       </figure>`).join("");
     sec.hidden = false;
     $$(".ref", box).forEach((el) => revealIO.observe(el));
+  })();
+
+  /* ---------- abilities: what you can do, before and after, each linked to its project ---------- */
+  (function abilities() {
+    const box = $("#abilityGrid"), A = S.abilities || {}, items = (A.items || []).filter((a) => a && a.title);
+    const sec = $("#abilities");
+    if (!box || !sec) return;
+    if (!items.length || route) { sec.hidden = true; return; }
+    // "1.8 s" vs "180 ms": both in seconds, so the bars compare like for like
+    const qty = (s) => {
+      const mm = /^([\d.,]+)\s*([a-zµ%×]*)/i.exec(String(s).trim());
+      if (!mm) return null;
+      const n = parseFloat(mm[1].replace(/,/g, "")), u = mm[2].toLowerCase();
+      const f = { ms: 0.001, s: 1, sec: 1, min: 60, h: 3600, hr: 3600, hours: 3600, day: 86400, days: 86400, wk: 604800, k: 1000 }[u];
+      return isNaN(n) ? null : n * (f || 1);
+    };
+    const C = ["var(--p2)", "var(--p1)", "var(--p4)", "var(--p3)", "var(--p5)", "var(--p6)"];
+    // the change, worked out from the two values: "10× faster" for times that shrink a lot, otherwise a percentage
+    const TIME = /^(ms|s|sec|min|h|hr|hours|day|days|wk)$/i;
+    const change = (a) => {
+      const b = qty(a.before), af = qty(a.after);
+      if (!b || af == null) return "";
+      const unit = (/^[\d.,]+\s*([a-z]+)/i.exec(String(a.after).trim()) || [])[1] || "";
+      const r = af / b;
+      if (r < 1) return TIME.test(unit) && 1 / r >= 2 ? `${1 / r >= 10 ? Math.round(1 / r) : (1 / r).toFixed(1).replace(/\.0$/, "")}× faster` : `−${Math.round((1 - r) * 100)}%`;
+      if (r > 1) return r >= 2 ? `${r >= 10 ? Math.round(r) : r.toFixed(1).replace(/\.0$/, "")}× more` : `+${Math.round((r - 1) * 100)}%`;
+      return "";
+    };
+    box.innerHTML = items.map((a, i) => {
+      const b = qty(a.before), af = qty(a.after), ratio = b && af != null ? Math.max(0.04, Math.min(1, af / b)) : 0.35;
+      const pr = projects.find((x) => pslug(x) === a.project), P = (f) => `data-path="abilities.items.${S.abilities.items.indexOf(a)}.${f}"`;
+      const steps = (a.steps || []).filter(Boolean), delta = change(a);
+      return `<article class="ab-card reveal" style="--i:${i % 3};--c:${C[i % C.length]}">
+        <div class="ab-top"><span class="ab-ico">${icon(ICON[a.icon] ? a.icon : "abilities")}</span><span class="ab-area" ${P("area")}>${esc(a.area || "")}</span>${delta ? `<span class="ab-delta">${esc(delta)}</span>` : ""}</div>
+        <h3 class="ab-title" ${P("title")}>${esc(a.title)}</h3>
+        <div class="ab-proof">
+          <p class="ab-where"><span>Proof</span><b ${P("proof")}>${esc(a.proof || a.claim || "")}</b></p>
+          <p class="ab-nums"><span class="ab-before" ${P("before")}>${esc(a.before || "")}</span><span class="ab-arrow" aria-hidden="true">→</span><b class="ab-after" ${P("after")}>${esc(a.after || "")}</b><span class="ab-label" ${P("label")}>${esc(a.label || "")}</span></p>
+          <div class="ab-bars" aria-hidden="true"><i class="b0"></i><i class="b1" style="--r:${ratio.toFixed(3)}"></i></div>
+        </div>
+        ${steps.length ? `<div class="ab-how"><span>How</span><ol>${steps.map((s, k) => `<li ${P(`steps.${k}`)}>${esc(s)}</li>`).join("")}</ol></div>` : a.text ? `<p class="ab-text" ${P("text")}>${esc(a.text)}</p>` : ""}
+        <div class="ab-foot"><ul class="ab-tags">${(a.tags || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>${pr && !INLINE ? `<a class="ab-more" href="/work/${pslug(pr)}">Read the story →</a>` : ""}</div>
+      </article>`;
+    }).join("");
+    $$(".ab-card", box).forEach((el) => revealIO.observe(el));
   })();
 
   /* ---------- projects: cards, filters, stack routes ---------- */
@@ -759,6 +837,7 @@ function start(S, route, stacks) {
       return metric || outcome ? `<div class="pc-result">${metric}${outcome}</div>` : "";
     };
     const links = (p) => [
+      INLINE ? "" : `<a href="/work/${pslug(p)}">Story →</a>`,
       p.link && p.link !== "#" ? `<a href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener">Live ↗</a>` : "",
       p.repo && p.repo !== "#" ? `<a href="${esc(safeUrl(p.repo))}" target="_blank" rel="noopener">Source ↗</a>` : "",
     ].join("");
@@ -767,36 +846,39 @@ function start(S, route, stacks) {
       const c = en.target; c.classList.add("in"); cardIO.unobserve(c);
       setTimeout(() => c.classList.add("settled"), 900);   // hover reacts at once after the entrance
     }), { threshold: 0.1, rootMargin: "0px 0px -4% 0px" });
-    // a cover drawn from the project itself: a browser frame, its result and a small chart that moves the way the result does
+    // a cover drawn from the project itself: a browser frame with its architecture as a flow, and a faint chart underneath
     const hash = (s) => [...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
     const cover = (p, wide) => {
-      const VW = wide ? 1000 : 400, x0 = wide ? 450 : 214, x1 = VW - 30;   // the wide card gets a wider drawing, not a bigger one
+      const VW = wide ? 1000 : 400;
       let seed = hash(p.title);
       const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
-      const val = String((p.metric && p.metric.value) || "").trim(), down = /^[-−]/.test(val);
-      const pts = Array.from({ length: 9 }, (_, k) => { const t = k / 8; return [x0 + t * (x1 - x0), 150 - (down ? 1 - t : t) * 70 + (rnd() - 0.5) * 22]; });
+      const down = /^[-−]/.test(String((p.metric && p.metric.value) || "").trim());
+      const arch = ((p.detail && p.detail.architecture) || p.tags || []).slice(0, wide ? 5 : 3);
+      const gap = 22, bw = Math.min(wide ? 160 : 108, (VW - 44 - gap * (arch.length - 1)) / Math.max(1, arch.length)), total = arch.length * bw + gap * (arch.length - 1), sx = (VW - total) / 2;
+      const flow = arch.map((t, k) => {
+        const x = sx + k * (bw + gap), last = k === arch.length - 1;
+        return `<rect x="${x.toFixed(1)}" y="62" width="${bw.toFixed(1)}" height="40" rx="7" class="cv-node${last ? " hi" : ""}"/><text x="${(x + bw / 2).toFixed(1)}" y="86" text-anchor="middle" class="cv-node-t">${esc(String(t).length > (wide ? 22 : 18) ? `${String(t).slice(0, wide ? 21 : 17)}…` : t)}</text>`
+          + (last ? "" : `<path d="M${(x + bw + 4).toFixed(1)} 82H${(x + bw + gap - 5).toFixed(1)}" class="cv-arrow"/><path d="M${(x + bw + gap - 9).toFixed(1)} 78l4 4-4 4" class="cv-arrow"/>`);
+      }).join("");
+      const pts = Array.from({ length: 12 }, (_, k) => { const t = k / 11; return [22 + t * (VW - 44), 178 - (down ? 1 - t : t) * 38 + (rnd() - 0.5) * 12]; });
       const line = pts.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
-      const kind = hash(p.category || p.title) % 2;
-      const chart = kind ? `<path class="cv-area" d="${line} L${x1} 176 L${x0} 176 Z"/><path class="cv-line" d="${line}"/>${pts.map(([x, y], k) => k % 2 ? "" : `<circle class="cv-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6"/>`).join("")}`
-        : pts.map(([x, y], k) => `<rect class="cv-bar${k === (down ? 0 : 8) ? " hi" : ""}" x="${(x - 6).toFixed(1)}" y="${y.toFixed(1)}" width="12" height="${(176 - y).toFixed(1)}" rx="2"/>`).join("");
-      const lines = [0, 1, 2, 3].map((k) => `<rect class="cv-sk" x="22" y="${132 + k * 12}" width="${(70 + rnd() * 90).toFixed(0)}" height="5" rx="2.5"/>`).join("");
-      const slug = slugify(p.title) || "project";
-      return `<svg class="pc-cover" viewBox="0 0 ${VW} 210" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(p.title)}">
-        <defs><pattern id="g${p._i}" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" class="cv-grid"/></pattern></defs>
-        <rect width="${VW}" height="210" class="cv-bg"/><rect width="${VW}" height="210" fill="url(#g${p._i})"/>
+      const slug = pslug(p) || "project";
+      return `<svg class="pc-cover" viewBox="0 0 ${VW} 210" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(p.title)}: ${esc(arch.join(", "))}">
+        <defs><pattern id="g${p._i}${wide ? "w" : ""}" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" class="cv-grid"/></pattern></defs>
+        <rect width="${VW}" height="210" class="cv-bg"/><rect width="${VW}" height="210" fill="url(#g${p._i}${wide ? "w" : ""})"/>
         <rect x="12" y="14" width="${VW - 24}" height="184" rx="8" class="cv-win"/><path d="M12 36H${VW - 12}" class="cv-rule"/>
         <circle cx="26" cy="25" r="3" class="cv-dot"/><circle cx="37" cy="25" r="3" class="cv-dot"/><circle cx="48" cy="25" r="3" class="cv-dot"/>
         <rect x="${VW / 2 - 60}" y="19" width="120" height="12" rx="6" class="cv-url"/><text x="${VW / 2}" y="28" text-anchor="middle" class="cv-url-t">${esc(slug.slice(0, 18))}.dev</text>
-        <text x="22" y="82" class="cv-big">${esc(val || "✓")}</text><text x="22" y="104" class="cv-small">${esc(((p.metric && p.metric.label) || p.title).slice(0, 34))}</text>
-        ${lines}${chart}</svg>`;
+        ${flow}<path class="cv-area" d="${line} L${VW - 22} 190 L22 190 Z"/><path class="cv-line" d="${line}"/></svg>`;
     };
+    coverFor = (p) => cover(p, true);
     const media = (p, wide) => `<div class="pc-media">${p.image ? `<img src="${esc(safeUrl(p.image))}" alt="" loading="lazy" decoding="async">` : cover(p, wide)}</div>`;
     const cardHTML = (p, i, wide) => `
       <article class="pcard${wide ? " wide" : ""}" style="--i:${i % 6};--c:${colorOf(p.category)}">
         ${media(p, wide)}
-        <div class="pc-top">${labelOf[p.category] ? `<span class="pc-cat"><i></i>${esc(labelOf[p.category])}</span>` : ""}<span class="pc-year">${esc(p.year)}</span>${p.sample ? '<span class="sample-tag">Example</span>' : ""}</div>
+        <div class="pc-top">${labelOf[p.category] ? `<span class="pc-cat"><i></i>${esc(labelOf[p.category])}</span>` : ""}<span class="pc-year">${esc(p.year)}</span>${p.sample && MARK ? '<span class="sample-tag">Example</span>' : ""}</div>
         <div class="pc-body">
-          <div class="pc-text"><h3 ${P(p, "title")}>${esc(p.title)}</h3><p class="pc-blurb" ${P(p, "blurb")}>${esc(p.blurb)}</p></div>
+          <div class="pc-text"><h3 ${P(p, "title")}>${INLINE ? esc(p.title) : `<a class="pc-open" href="/work/${pslug(p)}">${esc(p.title)}</a>`}</h3><p class="pc-blurb" ${P(p, "blurb")}>${esc(p.blurb)}</p></div>
           ${result(p)}
         </div>
         <ul class="pc-tags">${(p.tags || []).map((t) => { const s = slugify(t); return `<li><a class="stack-link${s === activeSlug ? " on" : ""}" href="/stack/${s}">${esc(t)}<span class="sr-only"> projects</span></a></li>`; }).join("")}</ul>
@@ -853,6 +935,44 @@ function start(S, route, stacks) {
     });
     draw(projects);
   })();
+
+  /* ---------- a project's own page: /work/<slug> ---------- */
+  (function projectPage() {
+    const slug = projectRoute(), host = $("#projectPage");
+    if (!slug || !host) return;
+    const list = projects.filter((p) => !p.hidden), i = list.findIndex((p) => pslug(p) === slug), p = list[i];
+    const F = S.work.filters || [], keys = F.filter((f) => f.key !== "all").map((f) => f.key), label = (F.find((f) => f.key === (p && p.category)) || {}).label || "";
+    const col = p && keys.indexOf(p.category) >= 0 ? `var(--p${(keys.indexOf(p.category) % 9) + 1})` : "var(--accent)";
+    const sec = $("#project"); sec.hidden = false; $(".pipeline-band").after(sec);   // right under the menu, before Contact
+    if (!p) { host.innerHTML = `<div class="pp"><a class="pp-back" href="/#work">← All work</a><h1 class="pp-title">Project not found</h1><p class="lede">It may have been renamed. Every project is listed on the home page.</p></div>`; return; }
+    const d = p.detail || {}, P = (f) => `data-path="work.projects.${p._i}.${f}"`;
+    document.title = `${p.title} — ${S.meta.name}`;
+    const prev = list[(i - 1 + list.length) % list.length], next = list[(i + 1) % list.length];
+    const cov = p.image ? `<img src="${esc(safeUrl(p.image))}" alt="">` : coverFor(p);
+    host.innerHTML = `<article class="pp" style="--c:${col}">
+      <a class="pp-back" href="/#work">← All work</a>
+      <header class="pp-head reveal">
+        <div class="pc-top">${label ? `<span class="pc-cat"><i></i>${esc(label)}</span>` : ""}<span class="pc-year">${esc(p.year || "")}</span></div>
+        <h1 class="pp-title" ${P("title")}>${esc(p.title)}</h1>
+        <p class="pp-lede" ${P("blurb")}>${esc(p.blurb || "")}</p>
+        <dl class="pp-meta">${[["Role", "role"], ["Team", "team"], ["Duration", "duration"]].filter(([, k]) => d[k]).map(([t, k]) => `<div><dt>${t}</dt><dd ${P(`detail.${k}`)}>${esc(d[k])}</dd></div>`).join("")}</dl>
+        <div class="pp-cta">${p.link && p.link !== "#" ? `<a class="btn" href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener"><span>Visit live site</span> ↗</a>` : ""}${p.repo && p.repo !== "#" ? `<a class="btn btn-ghost" href="${esc(safeUrl(p.repo))}" target="_blank" rel="noopener"><span>View source</span> ↗</a>` : ""}</div>
+      </header>
+      <div class="pp-media reveal">${cov}</div>
+      ${(d.results || []).length ? `<section class="pp-results">${d.results.map((r, k) => `<div class="pp-res reveal" style="--i:${k}"><span class="pp-res-l" ${P(`detail.results.${k}.label`)}>${esc(r.label)}</span><p><s ${P(`detail.results.${k}.before`)}>${esc(r.before)}</s><span aria-hidden="true">→</span><b ${P(`detail.results.${k}.after`)}>${esc(r.after)}</b></p></div>`).join("")}</section>` : ""}
+      <div class="pp-grid">
+        ${d.challenge ? `<section class="reveal"><h2 class="pp-h">The challenge</h2><p class="pp-p" ${P("detail.challenge")}>${esc(d.challenge)}</p></section>` : ""}
+        ${(d.approach || []).length ? `<section class="reveal"><h2 class="pp-h">The approach</h2><ol class="pp-steps">${d.approach.map((s, k) => `<li ${P(`detail.approach.${k}`)}>${esc(s)}</li>`).join("")}</ol></section>` : ""}
+      </div>
+      ${(d.architecture || []).length ? `<section class="pp-arch reveal"><h2 class="pp-h">Architecture</h2><ol class="pp-flow">${d.architecture.map((s, k) => `<li style="--k:${k}" ${P(`detail.architecture.${k}`)}>${esc(s)}</li>`).join("")}</ol></section>` : ""}
+      ${p.outcome ? `<blockquote class="pp-outcome reveal"><span>Outcome</span><p ${P("outcome")}>${esc(p.outcome)}</p></blockquote>` : ""}
+      <section class="pp-built reveal"><h2 class="pp-h">Built with</h2><ul class="pc-tags">${(p.tags || []).map((t) => `<li><a class="stack-link" href="/stack/${slugify(t)}">${esc(t)}<span class="sr-only"> projects</span></a></li>`).join("")}</ul>
+        ${p.ci || p.tests || p.coverage ? `<p class="pp-ci">${p.ci ? `<span class="ok"><i></i>CI ${esc(p.ci)}</span>` : ""}${p.tests ? `<span>${esc(p.tests)} tests</span>` : ""}${p.coverage ? `<span>${esc(p.coverage)} coverage</span>` : ""}</p>` : ""}</section>
+      ${list.length > 1 ? `<nav class="pp-next" aria-label="More projects"><a href="/work/${pslug(prev)}"><span>Previous</span>${esc(prev.title)}</a><a href="/work/${pslug(next)}"><span>Next</span>${esc(next.title)}</a></nav>` : ""}
+    </article>`;
+    $$(".reveal", host).forEach((el) => revealIO.observe(el));
+  })();
+
 
   /* ---------- section art: a live panel beside each heading, built from the data ---------- */
   (function sectionArt() {
@@ -1214,7 +1334,7 @@ function start(S, route, stacks) {
 
   /* ---------- background: the page as one main branch; each section merges in, ending at shipped ---------- */
   (function pathToSuccess() {
-    if (route) return;
+    if (route || projectRoute()) return;
     const main = $("main"), host = document.createElement("div");
     host.className = "bg-graph"; host.setAttribute("aria-hidden", "true");
     document.body.insertBefore(host, main);
@@ -1377,24 +1497,6 @@ function start(S, route, stacks) {
   (function hoverText() {
     if (INLINE || reduceMotion || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
-    // hero title: letters near the pointer lift and take the accent, like a wave following the mouse
-    const title = $(".hero-title"), chars = $$(".hero-title .ch");
-    if (title && chars.length) {
-      setTimeout(() => title.classList.add("risen"), SEEN ? 0 : 1800);   // lines stop clipping once the letters are up
-      let boxes = [], px = 0, py = 0, raf = 0;
-      const measure = () => { boxes = chars.map((c) => { const r = c.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.height]; }); };
-      const paint = () => {
-        raf = 0;
-        chars.forEach((c, i) => {
-          const [x, y, hgt] = boxes[i], d = Math.hypot((x - px) * 0.9, (y - py) * 1.6) / hgt;
-          c.style.setProperty("--lift", Math.max(0, 1 - d / 1.6).toFixed(3));
-        });
-      };
-      title.addEventListener("pointerenter", measure);
-      title.addEventListener("pointermove", (e) => { px = e.clientX; py = e.clientY; if (!boxes.length) measure(); if (!raf) raf = requestAnimationFrame(paint); });
-      title.addEventListener("pointerleave", () => { cancelAnimationFrame(raf); raf = 0; boxes = []; chars.forEach((c) => c.style.setProperty("--lift", 0)); });
-    }
-
     // section headings: once the words have risen, the word under the pointer lifts in the section colour
     $$(".section-head h2[data-split], .contact-title[data-split]").forEach((h2) => {
       const io = new IntersectionObserver((en) => { if (en[0].isIntersecting) { io.disconnect(); setTimeout(() => h2.classList.add("settled"), 1600); } });
@@ -1410,24 +1512,6 @@ function start(S, route, stacks) {
     };
     $$(".nav-links .nl-t, .nav-cta, .btn > span[data-t], .btn-ghost[data-t]").forEach(roll);
 
-    // small mono labels decode again when pointed at
-    const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/<>_=+#";
-    const busy = new WeakSet();
-    const decode = (el) => {
-      const final = el.dataset.final || el.textContent;
-      if (busy.has(el) || !final.trim() || el.children.length) return;
-      busy.add(el); el.dataset.final = final;
-      const begin = performance.now(), dur = 250 + final.length * 22;
-      (function tick(now) {
-        const f = Math.min(1, (now - begin) / dur), fix = f * (final.length + 4) - 4;
-        el.textContent = f >= 1 ? final : [...final].map((ch, i) => (i < fix || ch === " " ? ch : GLYPHS[(Math.random() * GLYPHS.length) | 0])).join("");
-        if (f < 1) requestAnimationFrame(tick); else busy.delete(el);
-      })(begin);
-    };
-    document.addEventListener("pointerover", (e) => {
-      const el = e.target.closest(".section-head .eyebrow, .case-col .eyebrow, .side-block .eyebrow, .pipe-count .eyebrow");
-      if (el && !el.contains(e.relatedTarget)) decode(el);
-    });
   })();
 
   /* ---------- results count up when they come into view ---------- */
@@ -1534,6 +1618,7 @@ function start(S, route, stacks) {
   const stacks = stackIndex(S);
   // stack pages open on the filtered work, so the hero and pipeline step aside
   if (route) { document.documentElement.classList.add("stack-page"); $(".hero").hidden = true; $(".pipeline-band").hidden = true; }
+  if (projectRoute()) { document.documentElement.classList.add("project-page"); $(".hero").hidden = true; $(".pipeline-band").hidden = true; }
   render(S, route, stacks);
   start(S, route, stacks);
   if (INLINE) enableInline(raw, S); else ownerShortcut();

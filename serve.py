@@ -24,8 +24,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
-        if path == "/stack" or path.startswith("/stack/"):
+        if path == "/stack" or path.startswith("/stack/") or path.startswith("/work/"):
             self.path = "/index.html"
+        elif path.startswith("/demo/"):
+            self.path = "/demo.html"
         elif path.startswith("/edit/") or path == "/editor":
             self.path = "/editor.html"
         elif path == "/api/site":

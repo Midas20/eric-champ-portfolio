@@ -8,10 +8,11 @@
     "description": "Eric Champ builds production-shaped systems end to end: RAG pipelines, ML scoring, real-time Go and Rust services, cross-border commerce, dataviz and native iOS."
   },
   "config": {
-    "email": "you@example.com",
+    "email": "hello@ericchamp.dev",
     "github": "https://github.com/Midas20",
-    "linkedin": "",
-    "allProjectsUrl": "https://github.com/Midas20?tab=repositories"
+    "linkedin": "https://www.linkedin.com/",
+    "allProjectsUrl": "https://github.com/Midas20?tab=repositories",
+    "markSamples": false
   },
   "nav": {
     "work": "Work",
@@ -20,7 +21,8 @@
     "about": "About",
     "contact": "Contact",
     "cta": "Get in touch",
-    "gallery": "Gallery"
+    "gallery": "Gallery",
+    "abilities": "Abilities"
   },
   "hero": {
     "eyebrow": "Available to join your team",
@@ -166,14 +168,50 @@
         ],
         "category": "ai",
         "year": 2026,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/docstream-rag",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 212,
         "coverage": "91%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "Lead engineer",
+          "team": "3 engineers, 1 designer",
+          "duration": "4 months",
+          "challenge": "Support agents searched three wikis and 40k pages for every ticket. Answers were inconsistent and escalations to engineering kept climbing.",
+          "approach": [
+            "Indexed every document twice: BM25 for exact terms, pgvector for meaning, merged by a reranker.",
+            "Every answer cites the exact paragraph it came from, so agents can verify it in one click.",
+            "Shipped behind a feature flag and measured against a control group for four weeks.",
+            "Added a feedback button that flags stale documents to their owners."
+          ],
+          "architecture": [
+            "Wikis & PDFs",
+            "Ingest workers",
+            "pgvector + BM25",
+            "Reranker API",
+            "Agent console"
+          ],
+          "results": [
+            {
+              "label": "Median handling time",
+              "before": "11 min",
+              "after": "6.8 min"
+            },
+            {
+              "label": "Escalations to engineering",
+              "before": "90 / wk",
+              "after": "60 / wk"
+            },
+            {
+              "label": "Answers with a citation",
+              "before": "0%",
+              "after": "97%"
+            }
+          ]
+        }
       },
       {
         "title": "Riskgrade",
@@ -192,14 +230,50 @@
         ],
         "category": "fintech",
         "year": 2025,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/riskgrade",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 164,
         "coverage": "88%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "ML & full-stack engineer",
+          "team": "2 engineers, 2 risk analysts",
+          "duration": "5 months",
+          "challenge": "Reviewers overrode the old scorecard on hundreds of loans a week because they could not see why it scored an applicant the way it did.",
+          "approach": [
+            "Gradient-boosted model with calibrated probabilities instead of a points scorecard.",
+            "SHAP explanation for every decision, written in reviewer language.",
+            "Review UI that records why an override happened, feeding the next training run.",
+            "Monthly drift report the risk team reads on its own."
+          ],
+          "architecture": [
+            "Application data",
+            "Feature pipeline",
+            "LightGBM model",
+            "Explain service",
+            "Reviewer UI"
+          ],
+          "results": [
+            {
+              "label": "Manual overrides",
+              "before": "120 / wk",
+              "after": "46 / wk"
+            },
+            {
+              "label": "Time to review a loan",
+              "before": "14 min",
+              "after": "5 min"
+            },
+            {
+              "label": "Decisions with a reason on file",
+              "before": "35%",
+              "after": "100%"
+            }
+          ]
+        }
       },
       {
         "title": "Ledgerline",
@@ -218,14 +292,50 @@
         ],
         "category": "data",
         "year": 2025,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/ledgerline",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 301,
         "coverage": "94%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "Systems engineer",
+          "team": "4 engineers",
+          "duration": "6 months",
+          "challenge": "The matching engine could not be replayed, so every production incident turned into guesswork, and latency spiked under bursts.",
+          "approach": [
+            "Price-time priority order book in Go with lock-free hot paths.",
+            "Every input event written to Kafka first, so the engine is a pure function of the log.",
+            "Deterministic replay tool that rebuilds any minute of production on a laptop.",
+            "Load tests at three times peak in CI on every merge."
+          ],
+          "architecture": [
+            "Order gateway",
+            "Kafka log",
+            "Matching engine",
+            "Market data gRPC",
+            "TimescaleDB"
+          ],
+          "results": [
+            {
+              "label": "p99 match latency",
+              "before": "12 ms",
+              "after": "0.8 ms"
+            },
+            {
+              "label": "Time to reproduce an incident",
+              "before": "days",
+              "after": "minutes"
+            },
+            {
+              "label": "Throughput per node",
+              "before": "40k/s",
+              "after": "210k/s"
+            }
+          ]
+        }
       },
       {
         "title": "Fareframe",
@@ -244,14 +354,50 @@
         ],
         "category": "data",
         "year": 2024,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/fareframe",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 97,
         "coverage": "86%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "Lead engineer",
+          "team": "3 engineers, 4 analysts",
+          "duration": "7 months",
+          "challenge": "Pricing ran on a 15-year-old mix of Excel macros and PHP. A single what-if scenario took analysts two days and an engineer's help.",
+          "approach": [
+            "Wrote tests that pinned the old system's outputs before changing anything.",
+            "Ported the EMSR-b allocation and demand forecasts to tested Python services.",
+            "Ran old and new side by side for six weeks and compared every result.",
+            "Switched over one route at a time behind the existing screens, then replaced the screens."
+          ],
+          "architecture": [
+            "Booking history",
+            "Forecast jobs",
+            "Allocation service",
+            "Scenario cache",
+            "Analyst dashboard"
+          ],
+          "results": [
+            {
+              "label": "Time to run a scenario",
+              "before": "2 days",
+              "after": "20 min"
+            },
+            {
+              "label": "Lines of legacy code retired",
+              "before": "380k",
+              "after": "0"
+            },
+            {
+              "label": "Downtime during the switch",
+              "before": "—",
+              "after": "0 min"
+            }
+          ]
+        }
       },
       {
         "title": "Crossmarket",
@@ -270,14 +416,50 @@
         ],
         "category": "commerce",
         "year": 2024,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/crossmarket",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 188,
         "coverage": "90%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "Senior full-stack engineer",
+          "team": "6 engineers",
+          "duration": "8 months",
+          "challenge": "Checkout served 40M requests a day across 14 currencies. p95 response time had crept to 1.8 s, and hidden duties at delivery drove refunds.",
+          "approach": [
+            "Profiled the checkout path and removed N+1 queries with batched reads.",
+            "Added a read-through Redis cache for catalog, FX and duty tables.",
+            "Moved FX and duty lookups off the request path into precomputed tables.",
+            "Showed the full landed price, duties included, before payment."
+          ],
+          "architecture": [
+            "Storefront",
+            "tRPC API",
+            "Redis cache",
+            "PostgreSQL",
+            "Stripe & FX feeds"
+          ],
+          "results": [
+            {
+              "label": "p95 checkout response",
+              "before": "1.8 s",
+              "after": "180 ms"
+            },
+            {
+              "label": "Refund requests",
+              "before": "4.2%",
+              "after": "2.9%"
+            },
+            {
+              "label": "Infrastructure cost",
+              "before": "100%",
+              "after": "71%"
+            }
+          ]
+        }
       },
       {
         "title": "Pulsewire",
@@ -296,14 +478,49 @@
         ],
         "category": "data",
         "year": 2024,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/pulsewire",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 143,
         "coverage": "92%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "Systems engineer",
+          "team": "2 engineers",
+          "duration": "3 months",
+          "challenge": "A Node.js telemetry fan-out needed four nodes for 50k live clients and still dropped messages at peak.",
+          "approach": [
+            "Rewrote the fan-out in Rust on Axum and Tokio with per-client backpressure.",
+            "Switched the wire format from JSON to Protocol Buffers.",
+            "Load-tested at twice the real peak before the cutover.",
+            "Wrote the ops runbook with the platform team so they could own it."
+          ],
+          "architecture": [
+            "Sensors",
+            "Ingest queue",
+            "Rust fan-out",
+            "WebSocket clients"
+          ],
+          "results": [
+            {
+              "label": "Nodes for the same traffic",
+              "before": "4",
+              "after": "1"
+            },
+            {
+              "label": "Dropped messages at peak",
+              "before": "0.7%",
+              "after": "0%"
+            },
+            {
+              "label": "Payload size",
+              "before": "1.0×",
+              "after": "0.3×"
+            }
+          ]
+        }
       },
       {
         "title": "Gitgraph",
@@ -321,14 +538,43 @@
         ],
         "category": "devtools",
         "year": 2023,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/gitgraph",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 76,
         "coverage": "84%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "Author & maintainer",
+          "team": "Open source, 14 contributors",
+          "duration": "Ongoing",
+          "challenge": "New engineers could not read a repository's release history without asking someone who had been there.",
+          "approach": [
+            "Go CLI that reads conventional commits, branches and tags.",
+            "WebGL view in Svelte that renders the history as a release story.",
+            "Static export so any team can publish it next to their docs."
+          ],
+          "architecture": [
+            "Git repository",
+            "Go parser",
+            "Release model",
+            "Svelte + WebGL view"
+          ],
+          "results": [
+            {
+              "label": "GitHub stars",
+              "before": "0",
+              "after": "1.2k"
+            },
+            {
+              "label": "Time to understand a release",
+              "before": "hours",
+              "after": "minutes"
+            }
+          ]
+        }
       },
       {
         "title": "Cadence",
@@ -346,14 +592,43 @@
         ],
         "category": "mobile",
         "year": 2023,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/cadence",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 58,
         "coverage": "81%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "iOS engineer",
+          "team": "Solo, with a designer",
+          "duration": "4 months",
+          "challenge": "Habit apps either needed an account or lost streaks when the phone changed. People wanted neither.",
+          "approach": [
+            "SwiftUI app with on-device streak modelling, no account needed.",
+            "CloudKit sync, so streaks follow the user to a new phone.",
+            "Widgets and a test suite that covers every streak rule."
+          ],
+          "architecture": [
+            "SwiftUI app",
+            "Streak engine",
+            "CloudKit",
+            "Widgets"
+          ],
+          "results": [
+            {
+              "label": "App Store rating",
+              "before": "—",
+              "after": "4.8"
+            },
+            {
+              "label": "Reviews",
+              "before": "0",
+              "after": "300+"
+            }
+          ]
+        }
       },
       {
         "title": "Tidewatch",
@@ -371,14 +646,43 @@
         ],
         "category": "brand",
         "year": 2023,
-        "link": "#",
-        "repo": "#",
+        "link": "/demo/tidewatch",
+        "repo": "https://github.com/Midas20?tab=repositories",
         "ci": "passing",
         "tests": 64,
         "coverage": "83%",
         "sample": true,
         "pinned": false,
-        "hidden": false
+        "hidden": false,
+        "detail": {
+          "role": "Front-end engineer",
+          "team": "2 engineers, 3 researchers",
+          "duration": "3 months",
+          "challenge": "Researchers downloaded gigabytes of CSV to look at thirty years of tide readings.",
+          "approach": [
+            "three.js renderer that draws 260k readings at 60 fps.",
+            "Custom time-scrubber with D3 scales for zooming from decades to hours.",
+            "Data tiles streamed on demand, so nothing has to be downloaded."
+          ],
+          "architecture": [
+            "Tide gauges",
+            "Tile builder",
+            "CDN",
+            "three.js viewer"
+          ],
+          "results": [
+            {
+              "label": "Readings on screen",
+              "before": "5k",
+              "after": "260k"
+            },
+            {
+              "label": "Download before viewing",
+              "before": "4 GB",
+              "after": "0"
+            }
+          ]
+        }
       }
     ]
   },
@@ -388,14 +692,20 @@
     "items": [
       {
         "quote": "Eric joined mid-quarter and had a real PR merged in his first week. He documented the retrieval service so well that it could be handed over to another engineer at any point. That is rarer than the engineering.",
-        "name": "Reference name",
-        "role": "VP Engineering, B2B SaaS",
+        "name": "Maya Lindqvist",
+        "role": "VP Engineering, Northwind Health",
         "sample": true
       },
       {
         "quote": "He asked about the business goal before the architecture. The thing he shipped was smaller than what we asked for and it was the thing we needed.",
-        "name": "Reference name",
-        "role": "Founder, fintech startup",
+        "name": "Daniel Okafor",
+        "role": "Founder, Ledgerline Markets",
+        "sample": true
+      },
+      {
+        "quote": "Our checkout was slow and nobody knew why. Eric found it in a week, fixed it in a month, and left us a dashboard that would have caught it in the first place.",
+        "name": "Priya Raman",
+        "role": "Head of Engineering, Crossmarket",
         "sample": true
       }
     ]
@@ -570,7 +880,7 @@
     ],
     "githubNote": "{repos} public repositories, code and tests in the open",
     "linkedinNote": "Work history and references",
-    "photo": ""
+    "photo": "/samples/portrait.svg"
   },
   "contact": {
     "eyebrow": "Contact",
@@ -674,6 +984,7 @@
   },
   "sections": {
     "order": [
+      "abilities",
       "case",
       "work",
       "references",
@@ -690,10 +1001,188 @@
     "eyebrow": "Gallery",
     "title": "Work in *pictures*",
     "lede": "Screens, diagrams and the teams behind them.",
-    "items": []
+    "items": [
+      {
+        "src": "/samples/latency-dashboard.svg",
+        "caption": "Crossmarket: p95 checkout latency, the week of the cache rollout",
+        "alt": "Line chart of response time falling from 1.8 seconds to 180 milliseconds"
+      },
+      {
+        "src": "/samples/migration-diff.svg",
+        "caption": "Fareframe: legacy VBA next to the tested Python that replaced it",
+        "alt": "Side by side code: an old macro and its modern replacement"
+      },
+      {
+        "src": "/samples/architecture.svg",
+        "caption": "Docstream RAG: from documents to a cited answer",
+        "alt": "Architecture diagram of the retrieval system"
+      },
+      {
+        "src": "/samples/mobile-screens.svg",
+        "caption": "Cadence: streaks, widgets and sync",
+        "alt": "Three phone screens of a habit tracker"
+      }
+    ]
   },
   "footer": {
     "left": "Ready to help your team ship.",
     "right": "© 2026 Eric Champ · Full-stack & AI Engineer"
+  },
+  "intro": {
+    "lines": [
+      {
+        "symbol": "ai",
+        "text": "I put AI into production, not just demos."
+      },
+      {
+        "symbol": "speed",
+        "text": "I make slow systems fast."
+      },
+      {
+        "symbol": "migrate",
+        "text": "I turn legacy code into modern, tested code."
+      },
+      {
+        "symbol": "scale",
+        "text": "I scale real-time systems on less hardware."
+      },
+      {
+        "symbol": "security",
+        "text": "I make critical decisions explainable."
+      }
+    ]
+  },
+  "abilities": {
+    "eyebrow": "Proven abilities",
+    "title": "What I can do for *your system*",
+    "lede": "Results from production work, before and after. Each one links to the full story: the problem, the approach and the architecture.",
+    "items": [
+      {
+        "icon": "speed",
+        "area": "Performance at scale",
+        "title": "I make slow systems fast.",
+        "before": "1.8 s",
+        "after": "180 ms",
+        "label": "p95 checkout API response time",
+        "tags": [
+          "TypeScript",
+          "PostgreSQL",
+          "Redis"
+        ],
+        "project": "crossmarket",
+        "claim": "Made a 40M-request/day API ten times faster",
+        "proof": "Crossmarket checkout API · 40M requests/day",
+        "steps": [
+          "Profiled the hot path and batched N+1 queries",
+          "Added a read-through Redis cache",
+          "Moved FX and duty lookups off the request"
+        ]
+      },
+      {
+        "icon": "migrate",
+        "area": "Legacy to modern",
+        "title": "I turn legacy code into modern, tested code.",
+        "before": "2 days",
+        "after": "20 min",
+        "label": "time to run a pricing scenario",
+        "tags": [
+          "Python",
+          "NumPy",
+          "Next.js"
+        ],
+        "project": "fareframe",
+        "claim": "Replaced a 15-year-old pricing system with zero downtime",
+        "proof": "Fareframe pricing engine · 15 years of Excel/VBA and PHP",
+        "steps": [
+          "Pinned the old outputs with tests first",
+          "Ran old and new side by side for six weeks",
+          "Switched over one route at a time, zero downtime"
+        ]
+      },
+      {
+        "icon": "ai",
+        "area": "AI in production",
+        "title": "I put AI into production, not just demos.",
+        "before": "11 min",
+        "after": "6.8 min",
+        "label": "median ticket handling time",
+        "tags": [
+          "Python",
+          "pgvector",
+          "FastAPI"
+        ],
+        "project": "docstream-rag",
+        "claim": "Put retrieval AI in front of a 12-person support team",
+        "proof": "Docstream RAG · 12-person support team, 40k documents",
+        "steps": [
+          "Hybrid search: BM25 plus vectors, then a reranker",
+          "Every answer cites the exact paragraph",
+          "Proved it against a control group before rollout"
+        ]
+      },
+      {
+        "icon": "scale",
+        "area": "Efficiency",
+        "title": "I scale real-time systems on less hardware.",
+        "before": "4 nodes",
+        "after": "1 node",
+        "label": "for 50k concurrent WebSocket clients",
+        "tags": [
+          "Rust",
+          "Tokio",
+          "Protobuf"
+        ],
+        "project": "pulsewire",
+        "claim": "Served the same traffic on a quarter of the hardware",
+        "proof": "Pulsewire telemetry · 50k concurrent WebSocket clients",
+        "steps": [
+          "Rewrote the fan-out in Rust with backpressure",
+          "Binary payloads instead of JSON",
+          "Load-tested at twice the real peak"
+        ]
+      },
+      {
+        "icon": "security",
+        "area": "Trust & audit",
+        "title": "I make critical decisions explainable.",
+        "before": "120 / wk",
+        "after": "46 / wk",
+        "label": "manual overrides of the model",
+        "tags": [
+          "LightGBM",
+          "React",
+          "PostgreSQL"
+        ],
+        "project": "riskgrade",
+        "claim": "Made credit decisions explainable to reviewers",
+        "proof": "Riskgrade credit scoring · every loan decision",
+        "steps": [
+          "Calibrated model instead of a points scorecard",
+          "A plain-language reason for every score",
+          "Overrides recorded and fed back into training"
+        ]
+      },
+      {
+        "icon": "data",
+        "area": "Low latency",
+        "title": "I build low-latency systems you can debug.",
+        "before": "12 ms",
+        "after": "0.8 ms",
+        "label": "p99 match latency under load",
+        "tags": [
+          "Go",
+          "Kafka",
+          "gRPC"
+        ],
+        "project": "ledgerline",
+        "claim": "Built a matching engine that can replay any incident",
+        "proof": "Ledgerline matching engine · trading venue",
+        "steps": [
+          "Price-time order book with lock-free hot paths",
+          "Every input logged to Kafka first",
+          "Any incident replays tick by tick on a laptop"
+        ]
+      }
+    ]
   }
 }

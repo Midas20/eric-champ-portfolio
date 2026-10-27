@@ -28,6 +28,8 @@ const SECTIONS = {
   meta: ["Name & search", "Your name, initials and the title and description search engines and link previews show."],
   config: ["Links & email", "Email, GitHub and LinkedIn are used everywhere on the page. Leave LinkedIn empty to hide it."],
   nav: ["Navigation", "Labels in the top bar."],
+  intro: ["Intro", "The first-visit animation: a few short lines about you, each drawn as a symbol (ai, speed, migrate, scale, security, web, mobile, data, cloud, devops, api, fintech, games). The first line always shows, then two others, a different pair each visit."],
+  abilities: ["Abilities", "What you can do, each with its proof: a plain sentence (I make slow systems fast), where you proved it, the before and after values (the change, like 10× faster, is worked out for you) and a few short steps. Each one can link to a project by its page name, for example crossmarket for /work/crossmarket."],
   hero: ["Hero", "The first screen: headline, intro, buttons, stats and the layer stack. Numbers can be calculated for you: write {repos} (your own GitHub repositories, live), {years} (from your experience dates), {projects}, {stacks} or {layers} in a stat value or any text."],
   pipeline: ["Pipeline band", "The commit-to-production strip under the hero."],
   caseStudy: ["Case study", "The featured project is the first project that has a case study. Add one under Projects."],
@@ -50,15 +52,20 @@ const LABELS = {
   moreLabel: "“See all” link text", certificationsLabel: "Certifications heading", lookingFor: "What I’m looking for",
   home: "Home page shows", categories: "Project categories", stacks: "Also include stacks", pinned: "Pinned (shown first)", hidden: "Hidden from the site",
   role: "Role word (for Focus titles)", photo: "Photo", src: "Image", caption: "Caption", alt: "Alt text (describes the image)", nav: "Menu label",
-  href: "Link (optional, filled in for you)", type: "Type", presets: "Presets", order: "Order", eyebrow: "Small label above the title",
+  href: "Link (optional, filled in for you)", before: "Before", after: "After", area: "Area (small label)", symbol: "Symbol", icon: "Icon (speed, migrate, ai, scale, security, data)", project: "Project page (e.g. crossmarket)", proof: "Proof (where you did it)", steps: "How (short steps)", claim: "Headline of the proof", challenge: "The challenge", architecture: "Architecture (in order)", results: "Results", duration: "Duration", team: "Team", detail: "Project page", markSamples: "Show “Example” tags on sample data", type: "Type", presets: "Presets", order: "Order", eyebrow: "Small label above the title",
 };
-const LONG = /^(lede|text|blurb|quote|description|outcome|context|problem|approach|result|status|now|what)$/;
-const INLINE_LISTS = [/^focus\.presets\.\d+\.stacks$/, /^work\.projects\.\d+\.tags$/, /^skills\.groups\.\d+\.items$/, /^about\.team$/, /^pipeline\.stages$/];
+const LONG = /^(lede|text|blurb|quote|description|outcome|context|problem|approach|result|status|now|what|challenge)$/;
+const INLINE_LISTS = [/^abilities\.items\.\d+\.tags$/, /^work\.projects\.\d+\.detail\.architecture$/, /^focus\.presets\.\d+\.stacks$/, /^work\.projects\.\d+\.tags$/, /^skills\.groups\.\d+\.items$/, /^about\.team$/, /^pipeline\.stages$/];
 const TEMPLATES = {
+  "intro.lines": { symbol: "ai", text: "" },
+  "abilities.items": { icon: "speed", area: "", title: "", proof: "", before: "", after: "", label: "", steps: [], tags: [], project: "" },
+  "abilities.items.*.steps": "",
+  "work.projects.*.detail.approach": "",
+  "work.projects.*.detail.results": { label: "", before: "", after: "" },
   "hero.stats": { value: "", suffix: "", label: "", linkToGithub: false },
   "hero.layers": { label: "", note: "" },
   "work.filters": { key: "", label: "" },
-  "work.projects": { title: "", blurb: "", image: "", outcome: "", metric: { value: "", label: "" }, tags: [], category: "fullstack", year: new Date().getFullYear(), link: "", repo: "", ci: "passing", tests: 0, coverage: "", sample: false, pinned: false, hidden: false },
+  "work.projects": { title: "", blurb: "", image: "", outcome: "", metric: { value: "", label: "" }, tags: [], category: "fullstack", year: new Date().getFullYear(), link: "", repo: "", ci: "passing", tests: 0, coverage: "", sample: false, pinned: false, hidden: false, detail: { role: "", team: "", duration: "", challenge: "", approach: [], architecture: [], results: [] } },
   "references.items": { quote: "", name: "", role: "", sample: false },
   "experience.items": { dates: "", title: "", org: "", text: "" },
   "experience.certifications": "",
@@ -445,7 +452,7 @@ function presetInfo(path, p) {
       <button type="button" class="btn" data-act="previewpath" data-to="/for/${esc(slug)}">Preview</button></div></div>`;
 }
 
-const BUILTIN_SECTIONS = { case: "Case study", work: "Work", references: "References", experience: "Experience", skills: "Skills", gallery: "Gallery", about: "About", contact: "Contact" };
+const BUILTIN_SECTIONS = { abilities: "Abilities", case: "Case study", work: "Work", references: "References", experience: "Experience", skills: "Skills", gallery: "Gallery", about: "About", contact: "Contact" };
 const SECTION_NOTE = { case: "shows when a project has a case study", references: "shows when there are references", gallery: "shows when it has an image" };
 const customKey = (c) => `x-${slugify(c.id || c.title || "section")}`;
 function sectionOrder() {

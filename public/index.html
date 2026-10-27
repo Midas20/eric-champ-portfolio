@@ -11,7 +11,7 @@
 <meta name="color-scheme" content="dark light">
 <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/geist-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/styles.css?v=202610281300">
+<link rel="stylesheet" href="/styles.css?v=202610281500">
 <style>
   /* loading screen: inline so it shows before any other file arrives; only fades in if loading takes a moment */
   #loader { position: fixed; inset: 0; z-index: 200; display: grid; place-content: center; justify-items: center; gap: 28px; background: #0e0f13; color: #8b8f9a; --ld-acc: #7b8cff; --ld-acc2: #38bdf8;
@@ -41,17 +41,26 @@
   window.IT_FIELDS = (function () {
     var o = function (x, y, r) { return 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + 2 * r + ' 0a' + r + ' ' + r + ' 0 1 0 ' + -2 * r + ' 0'; };
     return [
-      { label: 'AI · Machine learning', d: ['M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z', 'M9 0.5v2.5M15 0.5v2.5M9 21v2.5M15 21v2.5M0.5 9h2.5M0.5 15h2.5M21 9h2.5M21 15h2.5', 'M7 7.5L12 9.5M7 7.5L12 14.5M7 16.5L12 9.5M7 16.5L12 14.5M12 9.5L17 12M12 14.5L17 12', o(7, 7.5, 1.1), o(7, 16.5, 1.1), o(12, 9.5, 1.1), o(12, 14.5, 1.1), o(17, 12, 1.4)] },
-      { label: 'Web · Front-end', d: ['M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'M3 8.5h18', 'M10 12l-2.5 2.5L10 17', 'M14 12l2.5 2.5L14 17'] },
-      { label: 'Mobile apps', d: ['M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z', 'M11 18.5h2', 'M9 6h6M9 9h4'] },
-      { label: 'Data · Databases', d: ['M4 5a8 3 0 1 0 16 0a8 3 0 1 0-16 0', 'M4 5v14a8 3 0 0 0 16 0V5', 'M4 12a8 3 0 0 0 16 0'] },
-      { label: 'Cloud', d: ['M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z'] },
-      { label: 'DevOps · CI/CD', d: ['M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z'] },
-      { label: 'Security', d: ['M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z', 'M9 12l2 2 4-4'] },
-      { label: 'Back-end · APIs', d: ['M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1', 'M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1', 'M10 12h.01M14 12h.01'] },
-      { label: 'Fintech', d: ['M3 3v18h18', 'M7 15l4-4 3 3 6-7', 'M16 7h4v4'] },
-      { label: 'Games', d: ['M6 11h4M8 9v4', 'M15 12h.01M18 10h.01', 'M17.32 5H6.68a4 4 0 0 0-3.98 3.59C2.6 9.42 2 14.46 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.41-1.41A2 2 0 0 1 9.83 16h4.34a2 2 0 0 1 1.41.59L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.55-.6-6.58-.69-7.26A4 4 0 0 0 17.32 5z'] }
+      { key: 'ai', label: 'AI · Machine learning', d: ['M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z', 'M9 0.5v2.5M15 0.5v2.5M9 21v2.5M15 21v2.5M0.5 9h2.5M0.5 15h2.5M21 9h2.5M21 15h2.5', 'M7 7.5L12 9.5M7 7.5L12 14.5M7 16.5L12 9.5M7 16.5L12 14.5M12 9.5L17 12M12 14.5L17 12', o(7, 7.5, 1.1), o(7, 16.5, 1.1), o(12, 9.5, 1.1), o(12, 14.5, 1.1), o(17, 12, 1.4)] },
+      { key: 'web', label: 'Web · Front-end', d: ['M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'M3 8.5h18', 'M10 12l-2.5 2.5L10 17', 'M14 12l2.5 2.5L14 17'] },
+      { key: 'mobile', label: 'Mobile apps', d: ['M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z', 'M11 18.5h2', 'M9 6h6M9 9h4'] },
+      { key: 'data', label: 'Data · Databases', d: ['M4 5a8 3 0 1 0 16 0a8 3 0 1 0-16 0', 'M4 5v14a8 3 0 0 0 16 0V5', 'M4 12a8 3 0 0 0 16 0'] },
+      { key: 'cloud', label: 'Cloud', d: ['M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z'] },
+      { key: 'devops', label: 'DevOps · CI/CD', d: ['M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z'] },
+      { key: 'security', label: 'Security', d: ['M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z', 'M9 12l2 2 4-4'] },
+      { key: 'api', label: 'Back-end · APIs', d: ['M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1', 'M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1', 'M10 12h.01M14 12h.01'] },
+      { key: 'fintech', label: 'Fintech', d: ['M3 3v18h18', 'M7 15l4-4 3 3 6-7', 'M16 7h4v4'] },
+      { key: 'games', label: 'Games', d: ['M6 11h4M8 9v4', 'M15 12h.01M18 10h.01', 'M17.32 5H6.68a4 4 0 0 0-3.98 3.59C2.6 9.42 2 14.46 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.41-1.41A2 2 0 0 1 9.83 16h4.34a2 2 0 0 1 1.41.59L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.55-.6-6.58-.69-7.26A4 4 0 0 0 17.32 5z'] }
     ];
+  })();
+  // every symbol by name: the fields above plus a few for abilities (used by the intro's lines about you)
+  window.IT_SYMBOLS = (function () {
+    var o = function (x, y, r) { return 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + 2 * r + ' 0a' + r + ' ' + r + ' 0 1 0 ' + -2 * r + ' 0'; }, m = {};
+    window.IT_FIELDS.forEach(function (f) { m[f.key] = f; });
+    m.speed = { label: 'Performance', d: ['M3.5 17a8.5 8.5 0 1 1 17 0', 'M12 17l4.5-6', 'M12 8.5v1.6M6 11l1.1 1.1M18 11l-1.1 1.1M3.5 17h1.6M18.9 17h1.6', o(12, 17, 1.4)] };
+    m.migrate = { label: 'Legacy to modern', d: ['M2 4h8v6H2z', 'M4 6.5h4M4 8h2.5', 'M14 14h8v6h-8z', 'M16 16.5h4M16 18h3', 'M6 10v3.5a2.5 2.5 0 0 0 2.5 2.5H13', 'M11 14l2 2-2 2'] };
+    m.scale = { label: 'Scale', d: ['M4 3h16v5H4z', 'M4 9.5h16v5H4z', 'M4 16h16v5H4z', 'M7 5.5h.01M7 12h.01M7 18.5h.01', 'M11 5.5h6M11 12h6M11 18.5h6'] };
+    return m;
   })();
   // never leave the loading screen up if something fails
   setTimeout(function () { var l = document.getElementById('loader'); if (l) l.classList.add('done'); }, 10000);
@@ -86,7 +95,6 @@
   })();
 </script>
 <div class="progress" id="progress" aria-hidden="true"></div>
-<canvas id="pageGL" aria-hidden="true"></canvas>
 
 <header class="nav" id="nav">
   <a class="brand" href="/#top">
@@ -156,6 +164,23 @@
       <div class="pipe-count"><span class="eyebrow" data-t="pipeline.label"></span><b id="shipCount">0</b></div>
     </div>
   </div>
+
+  <!-- ============ ABILITIES ============ -->
+  <section id="abilities" class="section">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow" data-t="abilities.eyebrow">Proven abilities</p>
+        <h2 data-t="abilities.title"></h2>
+        <p class="lede" data-t="abilities.lede"></p>
+      </div>
+      <div class="abilities" id="abilityGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT PAGE (/work/<slug>) ============ -->
+  <section id="project" class="section project-sec" hidden>
+    <div class="wrap" id="projectPage"></div>
+  </section>
 
   <!-- ============ FEATURED CASE STUDY ============ -->
   <section id="case" class="section" hidden>
@@ -347,7 +372,7 @@
   </div>
 </footer>
 
-<script src="/hero-gl.js?v=202610281200"></script>
-<script src="/main.js?v=202610281300"></script>
+<script src="/hero-gl.js?v=202610281400"></script>
+<script src="/main.js?v=202610281500"></script>
 </body>
 </html>

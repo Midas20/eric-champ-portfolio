@@ -66,7 +66,7 @@
   const ease = (t) => 1 - Math.pow(1 - t, 3);
 
   window.heroParticles = function heroParticles(opts) {
-    const { canvas, anchor, layers = 5, getActive = () => 0, reduceMotion = false, waitFor = () => false, instant = false, shapes = [], onShape = () => {} } = opts;
+    const { canvas, anchor, layers = 5, getActive = () => 0, reduceMotion = false, waitFor = () => false, instant = false, shapes = [], onShape = () => {}, shapeMs = 1000 } = opts;
     const gl = canvas.getContext("webgl2", { alpha: true, premultipliedAlpha: false, antialias: false, powerPreference: "high-performance" });
     if (!gl) return null;
 
@@ -189,7 +189,7 @@
     /* ---------- state ---------- */
     const t0 = performance.now();
     let assembleStart = null, running = false, raf = 0, visible = true, rot = 0, last = t0, active = 0, release = null;
-    const SHAPE_MS = 1000;   // each symbol holds about a second
+    const SHAPE_MS = shapeMs;   // how long each symbol holds
     const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
     function frame(now) {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -220,148 +220,9 @@
     recolor(); resize();
     addEventListener("resize", resize);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
-    addEventListener("pointermove", (e) => { tilt.tx = (e.clientX / innerWidth - 0.5) * 2; tilt.ty = (e.clientY / innerHeight - 0.5) * 2; }, { passive: true });
     new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible && !document.hidden ? play() : pause(); }).observe(canvas);
     document.addEventListener("visibilitychange", () => { document.hidden || !visible ? pause() : play(); });
     if (reduceMotion) frame(performance.now()); else play();
     return { recolor, resize };
-  };
-})();
-
-/* ==================================================================
-   Page particles: a depth field behind the whole page.
-   Scrolling moves near particles faster than far ones and stretches
-   them into speed lines; they drift away from the pointer; at Contact
-   they gather into a check mark that turns green.
-   ================================================================== */
-(function () {
-  const VERT = `#version 300 es
-  in vec3 aBase; in vec2 aShape; in vec2 aSeed;   // base: x (-1..1), y (0..1), depth; shape: check-mark point; seed: random, size
-  uniform float uTime, uScroll, uVel, uGather, uFade, uDpr, uAspect;
-  uniform vec2 uMouse, uTarget, uTargetK;
-  out float vAlpha; out float vStretch; out float vGreen;
-  void main() {
-    float d = aBase.z, r = aSeed.x;
-    float y = fract(aBase.y - uScroll * (0.15 + d * 0.85) + uTime * 0.004 * (0.3 + d));
-    vec2 p = vec2(aBase.x + sin(uTime * 0.2 + r * 30.0) * 0.015, 1.0 - y * 2.0) * vec2(1.06, 1.12);
-    vec2 m = p - uMouse; m.x *= uAspect;
-    float dm = length(m);
-    p += normalize(m + 1e-4) * vec2(1.0 / uAspect, 1.0) * 0.07 * d * smoothstep(0.3, 0.0, dm);
-    float g = smoothstep(r * 0.5, r * 0.5 + 0.5, uGather);
-    vec2 shape = uTarget + aShape * uTargetK;
-    p = mix(p, shape, g);
-    gl_Position = vec4(p, 0.0, 1.0);
-    vStretch = 1.0 + min(abs(uVel) * 60.0 * d, 6.0) * (1.0 - g);
-    vGreen = g;
-    gl_PointSize = aSeed.y * (0.6 + d) * uDpr * mix(vStretch * 0.9, 1.4, g);
-    vAlpha = (0.05 + d * 0.2) * uFade * mix(1.0, 3.2, g);
-  }`;
-  const FRAG = `#version 300 es
-  precision mediump float;
-  in float vAlpha; in float vStretch; in float vGreen;
-  uniform vec3 uColor, uOk;
-  out vec4 o;
-  void main() {
-    vec2 c = gl_PointCoord - 0.5;
-    float m = smoothstep(0.5, 0.1, length(vec2(c.x * vStretch, c.y)));
-    o = vec4(mix(uColor, uOk, vGreen), m * vAlpha);
-  }`;
-  const hex = (h) => { const n = parseInt(String(h).replace("#", "").slice(0, 6), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; };
-
-  window.pageParticles = function pageParticles(opts) {
-    const { canvas, goal, hero } = opts;
-    const gl = canvas.getContext("webgl2", { alpha: true, premultipliedAlpha: false, antialias: false });
-    if (!gl) return null;
-    const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
-    const prog = gl.createProgram();
-    try { gl.attachShader(prog, sh(gl.VERTEX_SHADER, VERT)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FRAG)); gl.linkProgram(prog); if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog)); }
-    catch (e) { console.warn("page particles disabled:", e.message); return null; }
-    gl.useProgram(prog);
-
-    const N = Math.min(innerWidth, innerHeight) < 700 ? 900 : 2000;
-    const base = new Float32Array(N * 3), shape = new Float32Array(N * 2), seed = new Float32Array(N * 2);
-    // the check mark (two strokes) inside a ring, in a unit box
-    const strokes = [[[-0.42, 0.02], [-0.12, -0.3]], [[-0.12, -0.3], [0.48, 0.34]]];
-    for (let k = 0; k < N; k++) {
-      base.set([Math.random() * 2 - 1, Math.random(), Math.pow(Math.random(), 1.6)], k * 3);
-      const role = Math.random();
-      let x, y;
-      if (role < 0.55) {
-        const [a, b] = strokes[Math.random() < 0.35 ? 0 : 1], t = Math.random();
-        x = a[0] + (b[0] - a[0]) * t + (Math.random() - 0.5) * 0.05; y = a[1] + (b[1] - a[1]) * t + (Math.random() - 0.5) * 0.05;
-      } else {
-        const th = Math.random() * Math.PI * 2, rr = 0.82 + (Math.random() - 0.5) * (role < 0.85 ? 0.03 : 0.5);
-        x = Math.cos(th) * rr; y = Math.sin(th) * rr;
-      }
-      shape.set([x, y], k * 2);
-      seed.set([Math.random(), 1.2 + Math.random() * 2.2], k * 2);
-    }
-    const attr = (name, data, size) => { const loc = gl.getAttribLocation(prog, name), buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0); };
-    gl.bindVertexArray(gl.createVertexArray());
-    attr("aBase", base, 3); attr("aShape", shape, 2); attr("aSeed", seed, 2);
-    const U = Object.fromEntries(["uTime", "uScroll", "uVel", "uGather", "uFade", "uDpr", "uAspect", "uMouse", "uTarget", "uTargetK", "uColor", "uOk"].map((n) => [n, gl.getUniformLocation(prog, n)]));
-    gl.enable(gl.BLEND);
-
-    function recolor() {
-      const css = getComputedStyle(document.documentElement);
-      const light = hex(css.getPropertyValue("--bg").trim() || "#0e0f13").reduce((a, b) => a + b, 0) > 1.5;
-      gl.uniform3fv(U.uColor, hex(css.getPropertyValue("--accent").trim() || "#7b8cff"));
-      gl.uniform3fv(U.uOk, hex(css.getPropertyValue("--ok").trim() || "#3ddc97"));
-      light ? gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA) : gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    }
-    let W = 0, H = 0, dpr = 1;
-    function resize() {
-      dpr = Math.min(devicePixelRatio || 1, 2);
-      W = innerWidth; H = innerHeight;
-      canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.uniform1f(U.uDpr, dpr); gl.uniform1f(U.uAspect, W / H);
-    }
-    recolor(); resize();
-    addEventListener("resize", resize);
-
-    const mouse = { x: 9, y: 9, tx: 9, ty: 9 };
-    addEventListener("pointermove", (e) => { mouse.tx = e.clientX / W * 2 - 1; mouse.ty = 1 - e.clientY / H * 2; }, { passive: true });
-    let lastY = scrollY, vel = 0, gather = 0, raf = 0, running = false, measured = -1e9, spot = null, heroH = 1;
-    const t0 = performance.now();
-    function frame(now) {
-      const y = scrollY, dy = (y - lastY) / Math.max(1, H); lastY = y;
-      vel += (dy - vel) * 0.25;
-      mouse.x += (mouse.tx - mouse.x) * 0.08; mouse.y += (mouse.ty - mouse.y) * 0.08;
-      // gather into the check mark while the goal (contact title) is in the middle of the screen
-      let want = 0, tx = 0, ty = 0, tk = 60;
-      if (now - measured > 400) {
-        measured = now;
-        const el = typeof goal === "function" ? goal() : goal;
-        const r = el && el.isConnected ? el.getBoundingClientRect() : null;
-        spot = r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 + y } : null;
-        heroH = hero ? hero.offsetHeight : H;
-      }
-      if (spot) {
-        const cx = spot.x, cy = spot.y - y;
-        {
-          want = Math.min(1, Math.max(0, 1 - Math.abs(cy - H * 0.5) / (H * 0.5)) * 1.6);
-          tx = cx / W * 2 - 1; ty = 1 - cy / H * 2;
-          tk = 46;
-        }
-      }
-      gather += (want - gather) * 0.06;
-      gl.uniform1f(U.uTime, (now - t0) / 1000);
-      gl.uniform1f(U.uScroll, y / (H * 2.2));
-      gl.uniform1f(U.uVel, vel);
-      gl.uniform1f(U.uGather, gather);
-      gl.uniform1f(U.uFade, Math.min(1, Math.max(0.15, (y - heroH * 0.2) / (heroH * 0.6))));
-      gl.uniform2f(U.uMouse, mouse.x, mouse.y);
-      gl.uniform2f(U.uTarget, tx, ty);
-      gl.uniform2f(U.uTargetK, tk / (W / 2), tk / (H / 2));
-      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.drawArrays(gl.POINTS, 0, N);
-      raf = requestAnimationFrame(frame);
-    }
-    const play = () => { if (!running) { running = true; raf = requestAnimationFrame(frame); } };
-    const pause = () => { running = false; cancelAnimationFrame(raf); };
-    document.addEventListener("visibilitychange", () => (document.hidden ? pause() : play()));
-    play();
-    return { recolor };
   };
 })();
