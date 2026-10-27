@@ -1,6 +1,6 @@
 // One-command setup and deploy to Cloudflare Pages.
 //
-//   npm run setup                          # project "eric-champ-portfolio"
+//   npm run setup                          # project "portfolio"
 //   PAGES_PROJECT=shiplayer npm run setup  # deploy into an existing project instead
 //
 // Steps: log in (opens your browser once), create the KV store, create the Pages

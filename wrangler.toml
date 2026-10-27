@@ -1,5 +1,5 @@
 # Cloudflare Pages project. Static files live in public/, Functions in functions/.
-name = "eric-champ-portfolio"
+name = "portfolio"
 pages_build_output_dir = "public"
 compatibility_date = "2025-06-01"
 

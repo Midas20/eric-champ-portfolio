@@ -1,5 +1,5 @@
 {
-  "name": "eric-champ-portfolio",
+  "name": "portfolio",
   "private": true,
   "type": "module",
   "description": "Portfolio site with an online editor and per-stack pages, on Cloudflare Pages.",
