@@ -12,12 +12,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css?v=202610280300">
+<link rel="stylesheet" href="/styles.css?v=202610280500">
 <script>
   document.documentElement.classList.add('js');
   try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
   try {
-    if ((location.pathname === '/' || /^\/for\//.test(location.pathname)) && !/draft/.test(location.search) && !sessionStorage.getItem('intro') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // seen this session: a reload shows the hero at once instead of replaying its entrance
+    if (sessionStorage.getItem('intro')) document.documentElement.classList.add('seen');
+    else if ((location.pathname === '/' || /^\/for\//.test(location.pathname)) && !/draft/.test(location.search) && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       document.documentElement.classList.add('intro');
       setTimeout(function () { document.documentElement.classList.remove('intro'); }, 6000);
     }
@@ -289,7 +291,7 @@
   </div>
 </footer>
 
-<script src="/hero-gl.js?v=202610280120"></script>
-<script src="/main.js?v=202610280300"></script>
+<script src="/hero-gl.js?v=202610280500"></script>
+<script src="/main.js?v=202610280500"></script>
 </body>
 </html>

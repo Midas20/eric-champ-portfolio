@@ -155,22 +155,22 @@ main { position: relative; z-index: 1; }
 .hero-inner { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 1.5rem 3rem; align-items: center; }
 .hero-head { grid-column: 1 / -1; min-width: 0; }
 .hero-copy { min-width: 0; }
-.hero-eyebrow { margin-bottom: 1.4rem; opacity: 0; animation: fade-up 0.8s var(--ease) 0.2s forwards; }
+.hero-eyebrow { margin-bottom: 1.4rem; opacity: 0; animation: fade-up 0.7s var(--ease) 0.05s forwards; }
 .hero-title { font-size: clamp(2.5rem, 6.4vw, 5.4rem); font-weight: 500; line-height: 1; letter-spacing: -0.045em; margin-bottom: 0.5rem; }
 .hero-title .line { display: block; overflow: hidden; padding-bottom: 0.1em; margin-bottom: -0.1em; }
 .hero-title .line-in { display: inline-block; transform: translateY(110%); animation: rise 1s var(--ease) forwards; }
 .hero-title .line:nth-child(2) .line-in { animation-delay: 0.1s; }
 .hero-title .line:nth-child(2) { color: var(--muted); }
-.hero-lede { max-width: 54ch; color: var(--muted); font-size: clamp(1rem, 1.3vw, 1.12rem); margin-bottom: 1.8rem; opacity: 0; animation: fade-up 0.9s var(--ease) 0.5s forwards; }
-.hero-cta { display: flex; flex-wrap: wrap; gap: 0.6rem; opacity: 0; animation: fade-up 0.9s var(--ease) 0.65s forwards; }
-.hero-stats { grid-column: 1 / -1; list-style: none; margin: 0.5rem 0 0; padding: 1rem 0 0; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 0.8rem 0; opacity: 0; animation: fade-up 0.9s var(--ease) 0.85s forwards; }
+.hero-lede { max-width: 54ch; color: var(--muted); font-size: clamp(1rem, 1.3vw, 1.12rem); margin-bottom: 1.8rem; opacity: 0; animation: fade-up 0.7s var(--ease) 0.25s forwards; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 0.6rem; opacity: 0; animation: fade-up 0.7s var(--ease) 0.35s forwards; }
+.hero-stats { grid-column: 1 / -1; list-style: none; margin: 0.5rem 0 0; padding: 1rem 0 0; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 0.8rem 0; opacity: 0; animation: fade-up 0.7s var(--ease) 0.45s forwards; }
 .hero-stats li { display: flex; align-items: baseline; gap: 0.5rem; padding-right: 1.4rem; margin-right: 1.4rem; border-right: 1px solid var(--line); }
 .hero-stats li:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
 .num { font-size: 1.25rem; font-weight: 500; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .num-label { color: var(--muted); font-size: 0.84rem; }
 
 /* the stack */
-.hero-visual { position: relative; display: grid; justify-items: end; min-width: 0; margin-top: -5rem; opacity: 0; animation: fade-up 1s var(--ease) 0.45s forwards; }
+.hero-visual { position: relative; display: grid; justify-items: end; min-width: 0; margin-top: -5rem; opacity: 0; animation: fade-up 0.8s var(--ease) 0.15s forwards; }
 .stack { width: min(100%, 340px); aspect-ratio: 1; perspective: 1400px; position: relative; animation: float 7s ease-in-out infinite; cursor: default; }
 .stack-scene { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(56deg) rotateZ(-38deg); pointer-events: none; }
 .plate {
@@ -851,16 +851,38 @@ h2 .w > span, .contact-title .w > span { display: inline-block; transform: trans
 /* hero title: letters rise one after another */
 .hero-title .line-in.split { transform: none; animation: none; }
 .hero-title .wd { display: inline-block; white-space: nowrap; }
-.hero-title .ch { display: inline-block; transform: translateY(110%); animation: rise 0.9s var(--ease) forwards; animation-delay: calc(var(--ld, 0s) + var(--ci) * 0.024s); }
+.hero-title .ch { display: inline-block; transform: translateY(110%); animation: rise 0.9s var(--ease) forwards; animation-delay: calc(var(--ld, 0s) + var(--ci) * 0.018s); }
 .hero-title .ch .hl { display: inline-block; }
 
 /* ledes: words come out of a blur */
 .lw { display: inline-block; }
 .section-head .lede .lw { opacity: 0; filter: blur(6px); transform: translateY(4px); transition: opacity 0.6s var(--ease), filter 0.6s var(--ease), transform 0.6s var(--ease); transition-delay: calc(0.35s + var(--wi) * 14ms); }
 .section-head.in .lede .lw { opacity: 1; filter: none; transform: none; }
-.hero-lede .lw { opacity: 0; filter: blur(6px); animation: lw-in 0.7s var(--ease) forwards; animation-delay: calc(0.55s + var(--wi) * 16ms); }
+.hero-lede .lw { opacity: 0; filter: blur(6px); animation: lw-in 0.7s var(--ease) forwards; animation-delay: calc(0.25s + var(--wi) * 10ms); }
 @keyframes lw-in { to { opacity: 1; filter: none; } }
 @media (prefers-reduced-motion: reduce) {
   .hl { animation: none; }
   .lw, .hero-title .ch { opacity: 1 !important; filter: none !important; transform: none !important; }
 }
+
+/* ---------- reloaded this session: the hero is simply there ---------- */
+.seen .hero-eyebrow, .seen .hero-lede, .seen .hero-cta, .seen .hero-stats, .seen .hero-visual { animation: none; opacity: 1; }
+.seen .hero-title .line-in, .seen .hero-title .ch { animation: none; transform: none; }
+.seen .hero-lede .lw { animation: none; opacity: 1; filter: none; }
+
+/* ---------- text under the pointer ---------- */
+.hero-title.risen .line { overflow: visible; }
+.hero-title .ch { translate: 0 calc(var(--lift, 0) * -0.16em); transition: translate 0.35s var(--ease), color 0.35s; }
+.hero-title .ch:not(:has(.hl)) { color: color-mix(in srgb, var(--accent) calc(var(--lift, 0) * 100%), currentColor); }
+
+.section-head h2.settled .w, .contact-title.settled .w { overflow: visible; }
+h2.settled .w > span, .contact-title.settled .w > span { transition: transform 0.35s var(--ease), color 0.25s; transition-delay: 0s; }
+h2.settled .w > span:hover, .contact-title.settled .w > span:hover { transform: translateY(-0.08em); color: var(--sc, var(--accent)); }
+
+.roll { display: inline-flex; overflow: hidden; line-height: 1.3; height: 1.3em; vertical-align: middle; }
+.roll > span { display: inline-block; white-space: pre; text-shadow: 0 1.3em currentColor; transition: transform 0.45s var(--ease); transition-delay: calc(var(--k) * 16ms); }
+a:hover .roll > span, .btn:hover .roll > span, a:focus-visible .roll > span { transform: translateY(-1.3em); }
+
+.pcard h3 { width: fit-content; background: linear-gradient(var(--c), var(--c)) no-repeat 0 100% / 0 2px; padding-bottom: 2px; transition: transform 0.4s var(--ease), background-size 0.45s var(--ease); }
+.pcard:hover h3 { background-size: 100% 2px; }
+.section-head .eyebrow, .case-col .eyebrow, .skill-group h3 { cursor: default; }

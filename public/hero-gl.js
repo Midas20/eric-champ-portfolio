@@ -54,7 +54,7 @@
   const ease = (t) => 1 - Math.pow(1 - t, 3);
 
   window.heroParticles = function heroParticles(opts) {
-    const { canvas, anchor, layers = 5, getActive = () => 0, reduceMotion = false, waitFor = () => false } = opts;
+    const { canvas, anchor, layers = 5, getActive = () => 0, reduceMotion = false, waitFor = () => false, instant = false } = opts;
     const gl = canvas.getContext("webgl2", { alpha: true, premultipliedAlpha: false, antialias: false, powerPreference: "high-performance" });
     if (!gl) return null;
 
@@ -145,8 +145,8 @@
     const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
     function frame(now) {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      if (assembleStart === null && !waitFor()) assembleStart = now + 700;
-      const asm = reduceMotion ? 1 : assembleStart === null ? 0 : ease(Math.min(1, Math.max(0, (now - assembleStart) / 3200)));
+      if (assembleStart === null && !waitFor()) assembleStart = now + 150;
+      const asm = reduceMotion || instant ? 1 : assembleStart === null ? 0 : ease(Math.min(1, Math.max(0, (now - assembleStart) / 2200)));
       const hero = canvas.parentElement.getBoundingClientRect();
       const flow = reduceMotion ? 0 : Math.min(1, Math.max(0, -hero.top / (hero.height * 0.75)));
       rot = reduceMotion ? 0 : Math.sin((now - t0) / 1000 * 0.35) * 0.2;   // a slow sway, not a spin

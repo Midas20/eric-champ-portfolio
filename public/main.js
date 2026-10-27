@@ -7,6 +7,7 @@
    ================================================================== */
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const SEEN = document.documentElement.classList.contains("seen");   // reloaded this session: no hero entrance
 const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -501,6 +502,7 @@ function start(S, route, stacks) {
     const ctl = window.heroParticles({
       canvas, anchor, layers: (S.hero.layers || []).length || 5, getActive: () => heroLayer.cur, reduceMotion,
       waitFor: () => document.documentElement.classList.contains("intro"),
+      instant: document.documentElement.classList.contains("seen"),
     });
     if (!ctl) return;
     $(".hero").classList.add("gl-on");
@@ -613,7 +615,7 @@ function start(S, route, stacks) {
     const ease = (x) => 1 - Math.pow(1 - x, 3);
     const run = (el) => {
       const target = Number(el.dataset.count), suffix = el.dataset.suffix || "";
-      if (reduceMotion) { el.textContent = target + suffix; return; }
+      if (reduceMotion || (SEEN && el.closest(".hero"))) { el.textContent = target + suffix; return; }
       const t0 = performance.now(), dur = 1400;
       const tick = () => {
         const p = Math.min(1, Math.max(0, (performance.now() - t0) / dur));
@@ -1254,10 +1256,68 @@ function start(S, route, stacks) {
     }), { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
     $$(".section-head, .case-col").forEach((el) => eyeIO.observe(el));
     const hero = () => $$(".hero-eyebrow [data-t]").forEach((e, i) => setTimeout(() => scramble(e), 300 + i * 260));
-    if (root.classList.contains("intro")) {
+    if (SEEN) {}
+    else if (root.classList.contains("intro")) {
       const mo = new MutationObserver(() => { if (!root.classList.contains("intro")) { mo.disconnect(); hero(); } });
       mo.observe(root, { attributes: true, attributeFilter: ["class"] });
     } else hero();
+  })();
+
+  /* ---------- text under the pointer ---------- */
+  (function hoverText() {
+    if (INLINE || reduceMotion || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+
+    // hero title: letters near the pointer lift and take the accent, like a wave following the mouse
+    const title = $(".hero-title"), chars = $$(".hero-title .ch");
+    if (title && chars.length) {
+      setTimeout(() => title.classList.add("risen"), SEEN ? 0 : 1800);   // lines stop clipping once the letters are up
+      let boxes = [], px = 0, py = 0, raf = 0;
+      const measure = () => { boxes = chars.map((c) => { const r = c.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.height]; }); };
+      const paint = () => {
+        raf = 0;
+        chars.forEach((c, i) => {
+          const [x, y, hgt] = boxes[i], d = Math.hypot((x - px) * 0.9, (y - py) * 1.6) / hgt;
+          c.style.setProperty("--lift", Math.max(0, 1 - d / 1.6).toFixed(3));
+        });
+      };
+      title.addEventListener("pointerenter", measure);
+      title.addEventListener("pointermove", (e) => { px = e.clientX; py = e.clientY; if (!boxes.length) measure(); if (!raf) raf = requestAnimationFrame(paint); });
+      title.addEventListener("pointerleave", () => { cancelAnimationFrame(raf); raf = 0; boxes = []; chars.forEach((c) => c.style.setProperty("--lift", 0)); });
+    }
+
+    // section headings: once the words have risen, the word under the pointer lifts in the section colour
+    $$(".section-head h2[data-split], .contact-title[data-split]").forEach((h2) => {
+      const io = new IntersectionObserver((en) => { if (en[0].isIntersecting) { io.disconnect(); setTimeout(() => h2.classList.add("settled"), 1600); } });
+      io.observe(h2);
+    });
+
+    // menu links and buttons: letters roll up and a fresh copy rolls in
+    const roll = (el) => {
+      const text = el.textContent.trim();
+      if (!text || el.dataset.roll) return;
+      el.dataset.roll = "1"; (el.tagName === "A" ? el : el.closest("a, button")).setAttribute("aria-label", text);   // the link keeps its name
+      el.innerHTML = `<span class="roll" aria-hidden="true">${[...text].map((ch, k) => `<span style="--k:${k}">${esc(ch)}</span>`).join("")}</span>`;
+    };
+    $$(".nav-links a, .nav-cta, .btn > span[data-t], .btn-ghost[data-t]").forEach(roll);
+
+    // small mono labels decode again when pointed at
+    const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/<>_=+#";
+    const busy = new WeakSet();
+    const decode = (el) => {
+      const final = el.dataset.final || el.textContent;
+      if (busy.has(el) || !final.trim() || el.children.length) return;
+      busy.add(el); el.dataset.final = final;
+      const begin = performance.now(), dur = 250 + final.length * 22;
+      (function tick(now) {
+        const f = Math.min(1, (now - begin) / dur), fix = f * (final.length + 4) - 4;
+        el.textContent = f >= 1 ? final : [...final].map((ch, i) => (i < fix || ch === " " ? ch : GLYPHS[(Math.random() * GLYPHS.length) | 0])).join("");
+        if (f < 1) requestAnimationFrame(tick); else busy.delete(el);
+      })(begin);
+    };
+    document.addEventListener("pointerover", (e) => {
+      const el = e.target.closest(".section-head .eyebrow, .case-col .eyebrow, .skill-group h3, .side-block .eyebrow, .pipe-count .eyebrow");
+      if (el && !el.contains(e.relatedTarget)) decode(el);
+    });
   })();
 
   /* ---------- results count up when they come into view ---------- */
