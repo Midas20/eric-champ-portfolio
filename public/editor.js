@@ -128,6 +128,8 @@ function prim(path, key, v) {
   }
   const long = LONG.test(key) || String(v || "").length > 90;
   const type = /url|link|repo|github|linkedin/i.test(key) ? "url" : "text";
+  if (/^(hero\.titleLine[12]|(work|references|experience|skills|gallery|about|contact)\.title|customSections\.\d+\.title)$/.test(path))
+    return `<div class="fld">${label}<input id="${id}" type="text" data-path="${path}" data-type="str" value="${esc(v)}"><span class="hint">Wrap words in *stars* to colour them.</span></div>`;
   return long
     ? `<div class="fld">${label}<textarea id="${id}" data-path="${path}" data-type="str" rows="${Math.min(8, Math.max(2, Math.ceil(String(v || "").length / 90)))}">${esc(v)}</textarea></div>`
     : `<div class="fld">${label}<input id="${id}" type="${type}" data-path="${path}" data-type="str" value="${esc(v)}"></div>`;

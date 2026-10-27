@@ -59,7 +59,7 @@ async function githubRepos(S) {
   try {
     let n = 0;
     for (let page = 1; page <= 10; page++) {
-      const r = await fetch(`https://api.github.com/users/${m[1]}/repos?type=owner&per_page=100&page=${page}`);
+      const r = await fetch(`https://api.github.com/users/${m[1]}/repos?type=owner&per_page=100&page=${page}`, { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });   // a stalled API never holds the page
       if (!r.ok) return null;
       const list = await r.json();
       n += list.filter((x) => !x.fork).length;
@@ -667,43 +667,58 @@ function start(S, route, stacks) {
     $$(".ref", box).forEach((el) => revealIO.observe(el));
   })();
 
-  /* ---------- projects: rows, filters, stack routes ---------- */
+  /* ---------- projects: cards, filters, stack routes ---------- */
   (function projectRows() {
     const list = $("#projectGrid"), filters = $("#filters"), empty = $("#emptyState"), banner = $("#stackBanner");
     const F = S.work.filters || [];
     const labelOf = Object.fromEntries(F.map((f) => [f.key, f.label]));
     const activeSlug = route && route.slug;
-    const meta = (p) => {
-      const parts = [];
-      if (p.ci) parts.push(`<span class="ok">CI ${esc(p.ci)}</span>`);
-      if (p.tests) parts.push(`<span>${esc(p.tests)} tests</span>`);
-      if (p.coverage) parts.push(`<span>${esc(p.coverage)} coverage</span>`);
-      return parts.length ? `<p class="row-meta">${parts.join("")}</p>` : "";
+    // one colour per domain, in filter order, used only in small marks: dots, chips, edges, the result figure
+    const keys = F.filter((f) => f.key !== "all").map((f) => f.key);
+    const colorOf = (k) => { const i = keys.indexOf(k); return i < 0 ? "var(--accent)" : `var(--p${(i % 9) + 1})`; };
+    const P = (p, f) => `data-path="work.projects.${p._i}.${f}"`;
+    const meta = (p) => [
+      p.ci ? `<span class="ok"><i></i>CI ${esc(p.ci)}</span>` : "",
+      p.tests ? `<span>${esc(p.tests)} tests</span>` : "",
+      p.coverage ? `<span>${esc(p.coverage)} coverage</span>` : "",
+    ].join("");
+    const result = (p) => {
+      const metric = p.metric && String(p.metric.value || "").trim()
+        ? `<p class="pc-metric"><b ${P(p, "metric.value")}>${esc(p.metric.value)}</b><span ${P(p, "metric.label")}>${esc(p.metric.label)}</span></p>` : "";
+      const outcome = p.outcome ? `<p class="pc-outcome" ${P(p, "outcome")}>${esc(p.outcome)}</p>` : "";
+      return metric || outcome ? `<div class="pc-result">${metric}${outcome}</div>` : "";
     };
-    const rowIO = new IntersectionObserver((entries) => entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("in"); rowIO.unobserve(en.target); } }), { threshold: 0.1, rootMargin: "0px 0px -4% 0px" });
-    const rowHTML = (p, i) => `
-      <article class="row" style="--i:${i % 6}">
-        <div class="row-main">
-          <div class="row-head"><h3 data-path="work.projects.${p._i}.title">${esc(p.title)}</h3><span class="row-year">${esc(p.year)}</span>${p.sample ? '<span class="sample-tag">Example</span>' : ""}</div>
-          <p class="row-blurb" data-path="work.projects.${p._i}.blurb">${esc(p.blurb)}</p>
-          ${p.outcome ? `<p class="row-outcome"><span class="k">Outcome</span><span data-path="work.projects.${p._i}.outcome">${esc(p.outcome)}</span></p>` : ""}
-          ${meta(p)}
+    const links = (p) => [
+      p.link && p.link !== "#" ? `<a href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener">Live ↗</a>` : "",
+      p.repo && p.repo !== "#" ? `<a href="${esc(safeUrl(p.repo))}" target="_blank" rel="noopener">Source ↗</a>` : "",
+    ].join("");
+    const cardIO = new IntersectionObserver((entries) => entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      const c = en.target; c.classList.add("in"); cardIO.unobserve(c);
+      setTimeout(() => c.classList.add("settled"), 900);   // hover reacts at once after the entrance
+    }), { threshold: 0.1, rootMargin: "0px 0px -4% 0px" });
+    const cardHTML = (p, i, wide) => `
+      <article class="pcard${wide ? " wide" : ""}" style="--i:${i % 6};--c:${colorOf(p.category)}">
+        <div class="pc-top">${labelOf[p.category] ? `<span class="pc-cat"><i></i>${esc(labelOf[p.category])}</span>` : ""}<span class="pc-year">${esc(p.year)}</span>${p.sample ? '<span class="sample-tag">Example</span>' : ""}</div>
+        <div class="pc-body">
+          <div class="pc-text"><h3 ${P(p, "title")}>${esc(p.title)}</h3><p class="pc-blurb" ${P(p, "blurb")}>${esc(p.blurb)}</p></div>
+          ${result(p)}
         </div>
-        <div class="row-side">
-          ${p.metric ? `<p class="row-metric"><b data-path="work.projects.${p._i}.metric.value">${esc(p.metric.value)}</b><span data-path="work.projects.${p._i}.metric.label">${esc(p.metric.label)}</span></p>` : ""}
-          <span class="row-cat">${esc(labelOf[p.category] || p.category || "")}</span>
-          <ul class="row-tags">${(p.tags || []).map((t) => { const s = slugify(t); return `<li><a class="stack-link${s === activeSlug ? " on" : ""}" href="/stack/${s}">${esc(t)}</a></li>`; }).join("")}</ul>
-          <div class="row-links">
-            ${p.link && p.link !== "#" ? `<a href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener">Live ↗</a>` : ""}
-            ${p.repo && p.repo !== "#" ? `<a href="${esc(safeUrl(p.repo))}" target="_blank" rel="noopener">Source ↗</a>` : ""}
-          </div>
-        </div>
+        <ul class="pc-tags">${(p.tags || []).map((t) => { const s = slugify(t); return `<li><a class="stack-link${s === activeSlug ? " on" : ""}" href="/stack/${s}">${esc(t)}</a></li>`; }).join("")}</ul>
+        <div class="pc-foot">${meta(p)}<span class="pc-links">${links(p)}</span></div>
       </article>`;
     function draw(items) {
-      list.innerHTML = items.map(rowHTML).join("");
+      // an odd count opens with one wide card, so the grid ends on a full row
+      list.innerHTML = items.map((p, i) => cardHTML(p, i, items.length % 2 === 1 && i === 0 && items.length > 2)).join("");
       empty.hidden = items.length > 0;
-      $$(".row", list).forEach((r) => rowIO.observe(r));
+      $$(".pcard", list).forEach((c) => cardIO.observe(c));
     }
+    list.addEventListener("pointermove", (e) => {
+      const c = e.target.closest(".pcard");
+      if (!c) return;
+      const r = c.getBoundingClientRect();
+      c.style.setProperty("--mx", `${e.clientX - r.left}px`); c.style.setProperty("--my", `${e.clientY - r.top}px`);
+    }, { passive: true });
 
     if (route) {
       filters.hidden = true;
@@ -730,15 +745,15 @@ function start(S, route, stacks) {
       return;
     }
 
-    filters.innerHTML = F.map((f) => `<button class="filter" type="button" data-key="${esc(f.key)}" aria-pressed="${f.key === "all"}">${esc(f.label)}</button>`).join("");
     const byKey = (key) => (key === "all" ? projects : projects.filter((p) => p.category === key));
+    filters.innerHTML = F.filter((f) => byKey(f.key).length).map((f) => `<button class="filter" type="button" data-key="${esc(f.key)}" aria-pressed="${f.key === "all"}" style="--c:${f.key === "all" ? "var(--fg)" : colorOf(f.key)}"><i></i>${esc(f.label)}<span>${byKey(f.key).length}</span></button>`).join("");
     filters.addEventListener("click", (e) => {
       const btn = e.target.closest(".filter");
       if (!btn || btn.getAttribute("aria-pressed") === "true") return;
       $$(".filter", filters).forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
-      const rows = $$(".row", list);
-      if (reduceMotion || !rows.length) return draw(byKey(btn.dataset.key));
-      rows.forEach((r) => r.classList.add("is-leaving"));
+      const cards = $$(".pcard", list);
+      if (reduceMotion || !cards.length) return draw(byKey(btn.dataset.key));
+      cards.forEach((c) => c.classList.add("is-leaving"));
       setTimeout(() => draw(byKey(btn.dataset.key)), 220);
     });
     draw(projects);
@@ -1134,7 +1149,7 @@ function start(S, route, stacks) {
           out += `<circle class="g-c" data-y="${cy.toFixed(0)}" cx="${bx}" cy="${cy.toFixed(0)}" r="2.6"/>`;
         }
         out += `<circle class="g-m" data-y="${m}" cx="${x}" cy="${m}" r="4"/>`;
-        const name = ($(".eyebrow", s) || {}).textContent || s.id;
+        const eye = $(".eyebrow", s), name = (eye && (eye.dataset.final || eye.textContent)) || s.id;   // the real label, even mid-decode
         if (showLabels) out += `<text class="g-t" data-y="${m}" x="${x - 12}" y="${m + 3}" text-anchor="end">${esc(clip(name.trim(), 16))}</text>`;
         if (!reduceMotion) out += `<circle class="g-p" r="2"><animateMotion dur="${(5 + i * 0.7).toFixed(1)}s" repeatCount="indefinite" path="${d}"/></circle>`;
         nodes.push(m);
@@ -1171,20 +1186,83 @@ function start(S, route, stacks) {
     build();
   })();
 
-  /* ---------- headings rise in word by word ---------- */
-  (function splitHeadings() {
-    if (INLINE || reduceMotion) return;
+  /* ---------- text: *highlighted* words, headings and ledes that rise in, eyebrows that decode ---------- */
+  (function textMotion() {
+    if (INLINE) return;   // inline editing works on the plain text, stars included
+    const motion = !reduceMotion, root = document.documentElement;
+    const plain = (t) => t.replace(/\*([^*]+)\*/g, "$1");
+    // a *phrase* stays one unit: its spaces become non-breaking before the text is split on spaces
+    const tokens = (t) => t.replace(/\*[^*]+\*/g, (x) => x.replace(/ /g, " ")).split(/([ \t\n]+)/).filter(Boolean);
+    const isSpace = (w) => /^[ \t\n]+$/.test(w);
+    const wordHTML = (w) => esc(w).replace(/\*([^*]+)\*/g, '<em class="hl">$1</em>');
+
+    // hero title: letters rise one after another; a highlighted phrase rises as one
+    const title = $(".hero-title");
+    if (title) {
+      const lines = $$(".line-in", title);
+      title.setAttribute("aria-label", lines.map((el) => plain(el.textContent.trim())).join(" "));
+      lines.forEach((el, li) => {
+        const text = el.textContent;
+        el.setAttribute("aria-hidden", "true");
+        if (!motion) { el.innerHTML = wordHTML(text); return; }
+        let c = 0;
+        el.classList.add("split"); el.style.setProperty("--ld", `${li * 0.14}s`);
+        el.innerHTML = tokens(text).map((w) => isSpace(w) ? w : `<span class="wd">${w.split(/(\*[^*]+\*)/).filter(Boolean).map((part) => /^\*[^*]+\*$/.test(part)
+          ? `<span class="ch" style="--ci:${c++}"><em class="hl">${esc(part.slice(1, -1))}</em></span>`
+          : [...part].map((ch) => `<span class="ch" style="--ci:${c++}">${esc(ch)}</span>`).join("")).join("")}</span>`).join("");
+      });
+    }
+
+    // section headings: words rise in; the highlighted phrase carries the colour
     $$(".section-head h2, .contact-title").forEach((h) => {
       const text = h.textContent.trim();
       if (!text || h.dataset.split) return;
-      h.dataset.split = "1"; h.setAttribute("aria-label", text);
-      h.innerHTML = text.split(/(\s+)/).map((w, i) => /^\s+$/.test(w) ? w : `<span class="w" aria-hidden="true"><span style="--wi:${i >> 1}">${esc(w)}</span></span>`).join("");
+      h.dataset.split = "1";
+      if (!motion) { h.innerHTML = wordHTML(text); return; }
+      h.setAttribute("aria-label", plain(text));
+      let n = 0;
+      h.innerHTML = tokens(text).map((w) => isSpace(w) ? w : `<span class="w" aria-hidden="true"><span style="--wi:${n++}">${wordHTML(w)}</span></span>`).join("");
     });
+    if (!motion) return;
+
+    // ledes: words come out of a blur, left to right
+    $$(".section-head .lede, .hero-lede").forEach((p) => {
+      const text = p.textContent.trim();
+      if (!text || p.dataset.split) return;
+      p.dataset.split = "1";
+      let n = 0;
+      p.innerHTML = text.split(/(\s+)/).map((w) => /^\s+$/.test(w) ? w : `<span class="lw" style="--wi:${n++}">${esc(w)}</span>`).join("");
+    });
+
+    // eyebrows decode from random glyphs into the label as they come into view
+    const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/<>_=+#";
+    const scramble = (el) => {
+      const final = el.dataset.final || el.textContent;
+      if (!final.trim() || el.children.length) return;
+      el.dataset.final = final;
+      const begin = performance.now(), dur = 350 + final.length * 30, span = 5;
+      (function tick(now) {
+        const f = Math.min(1, (now - begin) / dur), fix = f * (final.length + span) - span;
+        el.textContent = f >= 1 ? final : [...final].map((ch, i) => (i < fix || ch === " " ? ch : GLYPHS[(Math.random() * GLYPHS.length) | 0])).join("");
+        if (f < 1) requestAnimationFrame(tick);
+      })(begin);
+    };
+    const eyeIO = new IntersectionObserver((entries) => entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      eyeIO.unobserve(en.target);
+      $$(".eyebrow", en.target).forEach((e, i) => setTimeout(() => scramble(e), i * 120));
+    }), { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
+    $$(".section-head, .case-col").forEach((el) => eyeIO.observe(el));
+    const hero = () => $$(".hero-eyebrow [data-t]").forEach((e, i) => setTimeout(() => scramble(e), 300 + i * 260));
+    if (root.classList.contains("intro")) {
+      const mo = new MutationObserver(() => { if (!root.classList.contains("intro")) { mo.disconnect(); hero(); } });
+      mo.observe(root, { attributes: true, attributeFilter: ["class"] });
+    } else hero();
   })();
 
   /* ---------- results count up when they come into view ---------- */
   (function countMetrics() {
-    if (reduceMotion) return;
+    if (reduceMotion || INLINE) return;
     const io = new IntersectionObserver((entries) => entries.forEach((en) => {
       if (!en.isIntersecting) return;
       io.unobserve(en.target);
@@ -1197,7 +1275,7 @@ function start(S, route, stacks) {
         if (f < 1) requestAnimationFrame(tick);
       })();
     }), { threshold: 0.6 });
-    $$(".row-metric b, #caseMetric").forEach((el) => io.observe(el));
+    $$(".pc-metric b, #caseMetric").forEach((el) => io.observe(el));
   })();
 
   /* ---------- contact ---------- */

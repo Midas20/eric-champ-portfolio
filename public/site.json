@@ -25,7 +25,7 @@
   "hero": {
     "eyebrow": "Available to join your team",
     "titleLine1": "Software that ships,",
-    "titleLine2": "across every layer.",
+    "titleLine2": "across *every layer*.",
     "lede": "I join teams to get real products out the door: the ML core, the services around it and the interface on top. I measure my work by what the team delivers, so everything I write is tested, readable and ready for the next engineer to build on.",
     "ctaPrimary": "See the work",
     "ctaSecondary": "GitHub ↗",
@@ -88,7 +88,7 @@
   },
   "work": {
     "eyebrow": "Selected work",
-    "title": "Work a team can build on",
+    "title": "Work a team can *build on*",
     "lede": "Every project is a real repository: the algorithm, the schema, the tests and the UI, because a team can only build on what actually works. Each entry states the outcome it was built for. Web projects are live.",
     "moreLabel": "See all {repos} projects on GitHub ↗",
     "filters": [
@@ -375,7 +375,7 @@
   },
   "references": {
     "eyebrow": "References",
-    "title": "What the teams say",
+    "title": "What the *teams* say",
     "items": [
       {
         "quote": "Eric joined mid-quarter, had a real PR merged in his first week, and by the time he rolled off the team could run the retrieval service without him. That handover is rarer than the engineering.",
@@ -393,7 +393,7 @@
   },
   "experience": {
     "eyebrow": "Experience",
-    "title": "Teams I’ve helped ship",
+    "title": "Teams I’ve helped *ship*",
     "lede": "{years} years inside agencies, product teams and independent engagements. The constant: leave the team faster and the codebase healthier than I found them.",
     "items": [
       {
@@ -437,7 +437,7 @@
   },
   "skills": {
     "eyebrow": "Toolkit",
-    "title": "Skills & stack",
+    "title": "Skills & *stack*",
     "lede": "Depth across languages, frameworks and infrastructure, chosen for the problem and the team that has to maintain it, not by habit.",
     "groups": [
       {
@@ -521,7 +521,7 @@
   },
   "about": {
     "eyebrow": "About",
-    "title": "The team’s result is the only score that counts.",
+    "title": "The team’s result is the *only score* that counts.",
     "paragraphs": [
       "I’m a full-stack and AI engineer who likes hard problems and clean systems. Over the past decade I’ve worked across the whole stack, from the algorithm at the core up through relational schemas, tested services, HTTP APIs and refined, modern interfaces.",
       "What I optimise for is simple: the team ships, and keeps shipping after I’ve moved on. That means code the next engineer can read and extend, a git history that explains itself, and the boring, reliable choice whenever the clever one would cost the team later.",
@@ -565,7 +565,7 @@
   },
   "contact": {
     "eyebrow": "Contact",
-    "title": "Let’s ship it together.",
+    "title": "Let’s *ship it* together.",
     "lede": "If your team has a product to get out the door, I’d like to hear about it. Contract or full-time. Email is the fastest way to reach me.",
     "lookingForTitle": "What I’m looking for",
     "lookingFor": [
@@ -679,7 +679,7 @@
   "customSections": [],
   "gallery": {
     "eyebrow": "Gallery",
-    "title": "Work in pictures",
+    "title": "Work in *pictures*",
     "lede": "Screens, diagrams and the teams behind them.",
     "items": []
   },
