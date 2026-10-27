@@ -167,13 +167,14 @@
     gl.enable(gl.BLEND); gl.disable(gl.DEPTH_TEST);
 
     /* ---------- layout: the stack sits where the CSS stack was ---------- */
-    let W = 0, H = 0, dpr = 1;
+    let W = 0, H = 0, dpr = 1, heroTop = 0, heroH = 1;
     function resize() {
       dpr = Math.min(devicePixelRatio || 1, 2);
       W = canvas.clientWidth; H = canvas.clientHeight;
       canvas.width = Math.max(1, Math.floor(W * dpr)); canvas.height = Math.max(1, Math.floor(H * dpr));
       gl.viewport(0, 0, canvas.width, canvas.height);
       const cr = canvas.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+      heroTop = cr.top + scrollY; heroH = cr.height || 1;   // kept for the scroll flow, so frames never force a layout
       const cx = (ar.left + ar.width * 0.56 - cr.left) / W * 2 - 1, cy = 1 - (ar.top + ar.height * 0.4 - cr.top) / H * 2;
       const k = Math.max(120, ar.width) / 2.45;   // px per world unit
       gl.uniform2f(U.uCenter, cx, cy);
@@ -199,8 +200,7 @@
       const wd = !shapeMode ? 0 : release === null ? ease(Math.min(1, (now - t0) / 900)) : 1 - ease(Math.min(1, (now - release) / 1700));
       gl.uniform1f(U.uWord, wd);
       gl.uniform1f(U.uMorph, shapeIdx <= 0 ? 1 : ease(Math.min(1, (now - morphStart) / 700)));
-      const hero = canvas.parentElement.getBoundingClientRect();
-      const flow = reduceMotion ? 0 : Math.min(1, Math.max(0, -hero.top / (hero.height * 0.75)));
+      const flow = reduceMotion ? 0 : Math.min(1, Math.max(0, (scrollY - heroTop) / (heroH * 0.75)));
       rot = reduceMotion ? 0 : Math.sin((now - t0) / 1000 * 0.35) * 0.2;   // a slow sway, not a spin
       tilt.x += (tilt.tx - tilt.x) * 0.05; tilt.y += (tilt.ty - tilt.y) * 0.05;
       active += (getActive() - active) * 0.12;
@@ -322,7 +322,7 @@
 
     const mouse = { x: 9, y: 9, tx: 9, ty: 9 };
     addEventListener("pointermove", (e) => { mouse.tx = e.clientX / W * 2 - 1; mouse.ty = 1 - e.clientY / H * 2; }, { passive: true });
-    let lastY = scrollY, vel = 0, gather = 0, raf = 0, running = false;
+    let lastY = scrollY, vel = 0, gather = 0, raf = 0, running = false, measured = -1e9, spot = null, heroH = 1;
     const t0 = performance.now();
     function frame(now) {
       const y = scrollY, dy = (y - lastY) / Math.max(1, H); lastY = y;
@@ -330,17 +330,22 @@
       mouse.x += (mouse.tx - mouse.x) * 0.08; mouse.y += (mouse.ty - mouse.y) * 0.08;
       // gather into the check mark while the goal (contact title) is in the middle of the screen
       let want = 0, tx = 0, ty = 0, tk = 60;
-      const el = typeof goal === "function" ? goal() : goal;
-      if (el && el.isConnected) {
-        const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-        if (r.width) {
+      if (now - measured > 400) {
+        measured = now;
+        const el = typeof goal === "function" ? goal() : goal;
+        const r = el && el.isConnected ? el.getBoundingClientRect() : null;
+        spot = r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 + y } : null;
+        heroH = hero ? hero.offsetHeight : H;
+      }
+      if (spot) {
+        const cx = spot.x, cy = spot.y - y;
+        {
           want = Math.min(1, Math.max(0, 1 - Math.abs(cy - H * 0.5) / (H * 0.5)) * 1.6);
           tx = cx / W * 2 - 1; ty = 1 - cy / H * 2;
           tk = 46;
         }
       }
       gather += (want - gather) * 0.06;
-      const heroH = hero ? hero.offsetHeight : H;
       gl.uniform1f(U.uTime, (now - t0) / 1000);
       gl.uniform1f(U.uScroll, y / (H * 2.2));
       gl.uniform1f(U.uVel, vel);

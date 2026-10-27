@@ -5,6 +5,10 @@
    result figures and *highlighted* words. Geist throughout, Geist
    Mono for labels.
    ================================================================== */
+/* Geist and Geist Mono (SIL Open Font License), latin subset, served from this site */
+@font-face { font-family: "Geist"; font-style: normal; font-weight: 300 700; font-display: swap; src: url("/fonts/geist-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 400 500; font-display: swap; src: url("/fonts/geist-mono-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
 :root {
   --bg: #0e0f13;
   --bg-2: #14151b;
@@ -208,7 +212,7 @@ main { position: relative; z-index: 1; }
 
 /* ---------- pipeline band ---------- */
 .pipeline-band { position: relative; z-index: 1; border-bottom: 1px solid var(--line); background: var(--bg); }
-.pipeline { display: flex; align-items: center; justify-content: space-between; gap: 2.5rem; padding-block: 0.85rem; }
+.pipeline { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 2.5rem; padding-block: 0.85rem; }
 .pipe { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; flex: 1; min-width: 0; position: relative; }
 /* a packet travels from stage to stage */
 .pipe-token { position: absolute; top: 50%; left: 0; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); opacity: 0; transition: left 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s; pointer-events: none; }
@@ -674,7 +678,7 @@ html.intro-word .i-name { animation-delay: 0.5s; }
   .nav-links a::after { display: none; }
   .burger { display: grid; }
   .nav-cta { display: none; }
-  .brand-name { display: none; }
+  .brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .skills { grid-template-columns: 1fr; }
   .creds { grid-template-columns: 1fr; }
   .hero-stats li { border-right: 0; margin-right: 0; padding-right: 0; width: 100%; }
@@ -952,3 +956,7 @@ a:hover .roll > span, .btn:hover .roll > span, a:focus-visible .roll > span { tr
 .social-rail svg { width: 17px; height: 17px; }
 html.intro .social-rail { visibility: hidden; }
 @media (max-width: 1180px) { .social-rail { display: none; } }
+
+/* ---------- off-screen sections are laid out only when they come near the screen ---------- */
+main > section.section { content-visibility: auto; contain-intrinsic-size: auto 1100px; }
+html.cv-all main > section.section { content-visibility: visible; }   /* jumping to a section: real sizes, so the jump lands on it */

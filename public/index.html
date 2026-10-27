@@ -9,10 +9,9 @@
 <meta property="og:description" content="Eric Champ builds production-shaped systems end to end.">
 <meta property="og:type" content="website">
 <meta name="color-scheme" content="dark light">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css?v=202610281100">
+<link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/geist-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css?v=202610281300">
 <style>
   /* loading screen: inline so it shows before any other file arrives; only fades in if loading takes a moment */
   #loader { position: fixed; inset: 0; z-index: 200; display: grid; place-content: center; justify-items: center; gap: 28px; background: #0e0f13; color: #8b8f9a; --ld-acc: #7b8cff; --ld-acc2: #38bdf8;
@@ -35,6 +34,9 @@
 </style>
 <script>
   document.documentElement.classList.add('js');
+  // a link to a section (or an address with one) lays out every section first, so the jump lands exactly
+  if (location.hash) document.documentElement.classList.add('cv-all');
+  document.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a[href*="#"]'); if (a) document.documentElement.classList.add('cv-all'); }, true);
   // fields of IT, as line symbols on a 24-unit grid: the loading screen draws them, the first-visit intro builds them from particles
   window.IT_FIELDS = (function () {
     var o = function (x, y, r) { return 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + 2 * r + ' 0a' + r + ' ' + r + ' 0 1 0 ' + -2 * r + ' 0'; };
@@ -87,8 +89,8 @@
 <canvas id="pageGL" aria-hidden="true"></canvas>
 
 <header class="nav" id="nav">
-  <a class="brand" href="/#top" aria-label="Home">
-    <span class="brand-mark" data-t="meta.initials">EC</span>
+  <a class="brand" href="/#top">
+    <span class="brand-mark" data-t="meta.initials" aria-hidden="true">EC</span>
     <span class="brand-name" data-t="meta.name">Eric Champ</span>
   </a>
   <nav class="nav-links" id="navLinks" aria-label="Sections">
@@ -345,7 +347,7 @@
   </div>
 </footer>
 
-<script src="/hero-gl.js?v=202610281000"></script>
-<script src="/main.js?v=202610281100"></script>
+<script src="/hero-gl.js?v=202610281200"></script>
+<script src="/main.js?v=202610281300"></script>
 </body>
 </html>

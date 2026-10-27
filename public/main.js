@@ -429,7 +429,7 @@ function render(S, route, stacks) {
       <div class="sc-head"><span class="sc-ico">${icon(groupIcon(g.name))}</span><h3 data-path="skills.groups.${i}.name">${esc(g.name)}</h3></div>
       <div class="sc-depth" title="Dots: one for being listed, one more per project and role here that uses it"><span>In projects</span><b>${used.length} of ${total}</b></div>
       <div class="sc-bar" aria-hidden="true"><i style="--v:${depth.toFixed(3)}"></i></div>
-      <ul class="sc-items">${items.map((x, j) => { const s = slugify(x.t); return `<li style="--j:${j}"><a class="stack-link${s === active ? " on" : ""}" href="/stack/${s}">${esc(x.t)}</a><span class="sc-dots" role="img" aria-label="${x.level} of 5">${[1, 2, 3, 4, 5].map((d) => `<i${d <= x.level ? ' class="on"' : ""}></i>`).join("")}</span></li>`; }).join("")}</ul>
+      <ul class="sc-items">${items.map((x, j) => { const s = slugify(x.t); return `<li style="--j:${j}"><a class="stack-link${s === active ? " on" : ""}" href="/stack/${s}">${esc(x.t)}<span class="sr-only"> projects</span></a><span class="sc-dots" role="img" aria-label="${x.level} of 5">${[1, 2, 3, 4, 5].map((d) => `<i${d <= x.level ? ' class="on"' : ""}></i>`).join("")}</span></li>`; }).join("")}</ul>
       <p class="sc-note">${used.length ? `Used in ${used.length} project${used.length === 1 ? "" : "s"}: ${esc(used.slice(0, 3).join(", "))}${used.length > 3 ? "…" : ""}` : "Part of the toolkit; no listed project uses these yet."}</p>
     </div>`;
   }).join("");
@@ -593,11 +593,12 @@ function start(S, route, stacks) {
     if (!items.length) return;
     if (reduceMotion) { items.forEach((li) => li.classList.add("done")); count.textContent = "1"; return; }
     let i = 0, ships = 0, timer = 0, visible = false;
-    const token = document.createElement("span"); token.className = "pipe-token"; pipe.appendChild(token);
+    // the moving dot sits in the band, not in the list, so the list holds only its steps
+    const token = document.createElement("span"); token.className = "pipe-token"; token.setAttribute("aria-hidden", "true"); pipe.parentElement.appendChild(token);
     const moveToken = (j) => {
       const dot = items[Math.min(j, items.length - 1)].querySelector("i");
-      const r = dot.getBoundingClientRect(), p = pipe.getBoundingClientRect();
-      token.style.left = `${r.left - p.left + r.width / 2}px`;
+      const r = dot.getBoundingClientRect(), p = pipe.parentElement.getBoundingClientRect();
+      token.style.left = `${r.left - p.left + r.width / 2}px`; token.style.top = `${r.top - p.top + r.height / 2}px`;
     };
     const paint = () => items.forEach((li, j) => { li.classList.toggle("done", j < i); li.classList.toggle("active", j === i); });
     function step() {
@@ -798,7 +799,7 @@ function start(S, route, stacks) {
           <div class="pc-text"><h3 ${P(p, "title")}>${esc(p.title)}</h3><p class="pc-blurb" ${P(p, "blurb")}>${esc(p.blurb)}</p></div>
           ${result(p)}
         </div>
-        <ul class="pc-tags">${(p.tags || []).map((t) => { const s = slugify(t); return `<li><a class="stack-link${s === activeSlug ? " on" : ""}" href="/stack/${s}">${esc(t)}</a></li>`; }).join("")}</ul>
+        <ul class="pc-tags">${(p.tags || []).map((t) => { const s = slugify(t); return `<li><a class="stack-link${s === activeSlug ? " on" : ""}" href="/stack/${s}">${esc(t)}<span class="sr-only"> projects</span></a></li>`; }).join("")}</ul>
         <div class="pc-foot">${meta(p)}<span class="pc-links">${links(p)}</span></div>
       </article>`;
     function draw(items) {
