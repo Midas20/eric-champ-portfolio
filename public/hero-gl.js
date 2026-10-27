@@ -1,5 +1,7 @@
 /* ==================================================================
    Hero particles (WebGL2, no dependencies)
+   On a first visit the particles first spell a big dotted word (the rest
+   twinkle as stars), then flow from the word into the layer stack.
    A loose cloud of particles pulls together into the layer stack, the
    stack turns and follows the pointer, the layer in the caption glows,
    and on scroll the particles pour down into the pipeline line.
@@ -9,9 +11,10 @@
 (function () {
   const VERT = `#version 300 es
   in vec3 aSphere; in vec3 aStack; in float aLineX; in vec4 aSeed;   // seed: random, layer 0..1, size, edge
-  uniform float uTime, uAssemble, uFlow, uRot, uActive, uLayers, uDpr, uLineY;
+  in vec3 aWord;                                                      // word phase: x, y (clip space), 1 = part of the word, 0 = a star
+  uniform float uTime, uAssemble, uFlow, uRot, uActive, uLayers, uDpr, uLineY, uWord, uDot;
   uniform vec2 uCenter, uCloud, uK, uTilt;
-  out float vAlpha; out float vHot;
+  out float vAlpha; out float vHot; out float vWord; out float vX;
   vec3 rotY(vec3 p, float a) { float c = cos(a), s = sin(a); return vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z); }
   vec3 rotX(vec3 p, float a) { float c = cos(a), s = sin(a); return vec3(p.x, c * p.y - s * p.z, s * p.y + c * p.z); }
   void main() {
@@ -32,29 +35,36 @@
     vec2 target = vec2(aLineX, uLineY);
     vec2 mid = vec2(mix(clip.x, target.x, 0.25), mix(clip.y, target.y, 0.9));
     vec2 q = mix(mix(clip, mid, f), mix(mid, target, f), f);
-    gl_Position = vec4(q, 0.0, 1.0);
     vHot = hot * a * (1.0 - f);
-    gl_PointSize = (aSeed.z + vHot * 0.5) * uDpr * persp * mix(1.3, 1.0, a) * mix(1.0, 0.85, f);
+    float size = (aSeed.z + vHot * 0.5) * uDpr * persp * mix(1.3, 1.0, a) * mix(1.0, 0.85, f);
     // edges crisp, surfaces soft; the active plate brighter, the rest calmer
     float surface = mix(0.38, 0.95, aSeed.w);
-    vAlpha = mix(0.55, surface * mix(0.6, 1.25, vHot), a) * mix(1.0, 0.85, f);
+    float alpha = mix(0.55, surface * mix(0.6, 1.25, vHot), a) * mix(1.0, 0.85, f);
+    // word phase: word particles sit on a dot grid, the others twinkle where they are put
+    float w = smoothstep(r * 0.35, r * 0.35 + 0.65, uWord);
+    float twinkle = 0.25 + 0.3 * (0.5 + 0.5 * sin(uTime * 2.2 + r * 60.0));
+    gl_Position = vec4(mix(q, aWord.xy, w), 0.0, 1.0);
+    gl_PointSize = mix(size, aWord.z > 0.5 ? uDot : 1.4 * uDpr, w);
+    vAlpha = mix(alpha, aWord.z > 0.5 ? 0.95 : twinkle, w);
+    vWord = w * aWord.z; vX = aWord.x * 0.5 + 0.5;
   }`;
   const FRAG = `#version 300 es
   precision mediump float;
-  in float vAlpha; in float vHot;
-  uniform vec3 uColor, uHotColor;
+  in float vAlpha; in float vHot; in float vWord; in float vX;
+  uniform vec3 uColor, uHotColor, uColor2;
   out vec4 o;
   void main() {
     float d = length(gl_PointCoord - 0.5);
     float m = smoothstep(0.5, 0.08, d);
-    o = vec4(mix(uColor, uHotColor, vHot), m * vAlpha);
+    vec3 c = mix(mix(uColor, uHotColor, vHot), mix(uColor, uColor2, vX), vWord);   // the word runs accent to sky
+    o = vec4(c, m * vAlpha);
   }`;
 
   const hex = (h) => { const n = parseInt(h.replace("#", "").slice(0, 6), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; };
   const ease = (t) => 1 - Math.pow(1 - t, 3);
 
   window.heroParticles = function heroParticles(opts) {
-    const { canvas, anchor, layers = 5, getActive = () => 0, reduceMotion = false, waitFor = () => false, instant = false } = opts;
+    const { canvas, anchor, layers = 5, getActive = () => 0, reduceMotion = false, waitFor = () => false, instant = false, word = "" } = opts;
     const gl = canvas.getContext("webgl2", { alpha: true, premultipliedAlpha: false, antialias: false, powerPreference: "high-performance" });
     if (!gl) return null;
 
@@ -100,10 +110,36 @@
       const loc = gl.getAttribLocation(prog, name), buf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
       gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+      return buf;
     };
     const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
     attr("aSphere", sphere, 3); attr("aStack", stack, 3); attr("aLineX", lineX, 1); attr("aSeed", seed, 4);
-    const U = Object.fromEntries(["uTime", "uAssemble", "uFlow", "uRot", "uActive", "uLayers", "uDpr", "uLineY", "uCenter", "uCloud", "uK", "uTilt", "uColor", "uHotColor"].map((n) => [n, gl.getUniformLocation(prog, n)]));
+    const wordPts = new Float32Array(N * 3), wordBuf = attr("aWord", wordPts, 3);
+    const U = Object.fromEntries(["uTime", "uAssemble", "uFlow", "uRot", "uActive", "uLayers", "uDpr", "uLineY", "uWord", "uDot", "uCenter", "uCloud", "uK", "uTilt", "uColor", "uHotColor", "uColor2"].map((n) => [n, gl.getUniformLocation(prog, n)]));
+
+    /* ---------- the word: rendered once to a hidden canvas, read back as a grid of dots ---------- */
+    const wordMode = !!word && !instant && !reduceMotion && waitFor();
+    function buildWord() {
+      if (!wordMode) return;
+      const c2 = document.createElement("canvas"), ctx = c2.getContext("2d", { willReadFrequently: true });
+      c2.width = Math.max(1, Math.round(W)); c2.height = Math.max(1, Math.round(H));
+      const font = (px) => `700 ${px}px Geist, "Segoe UI", system-ui, sans-serif`;
+      ctx.font = font(100);
+      const fit = Math.min((Math.min(W * 0.9, 1240) / Math.max(1, ctx.measureText(word).width)) * 100, H * 0.3);
+      ctx.font = font(fit); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = ctx.strokeStyle = "#fff"; ctx.lineWidth = fit * 0.05;
+      const wy = Math.min(H, innerHeight) * 0.43;   // middle of the first screen, above the name
+      ctx.fillText(word, W / 2, wy); ctx.strokeText(word, W / 2, wy);   // a stroke thickens the letters so each stem is several dots wide
+      const step = Math.max(4, Math.round(fit / 20)), img = ctx.getImageData(0, 0, c2.width, c2.height).data, pts = [];
+      for (let y = step / 2; y < c2.height; y += step) for (let x = step / 2; x < c2.width; x += step) if (img[(Math.floor(y) * c2.width + Math.floor(x)) * 4 + 3] > 140) pts.push([x / W * 2 - 1, 1 - y / H * 2]);
+      for (let k = 0; k < N; k++) {
+        const pt = k < Math.min(pts.length, Math.floor(N * 0.85)) ? pts[k] : null;
+        wordPts.set(pt ? [pt[0], pt[1], 1] : [Math.random() * 2 - 1, Math.random() * 2 - 1, 0], k * 3);
+      }
+      // more dots than particles: spread the particles over the whole word, not just its first letters
+      if (pts.length > N * 0.85) for (let k = 0; k < Math.floor(N * 0.85); k++) { const pt = pts[Math.floor(k * pts.length / (N * 0.85))]; wordPts.set([pt[0], pt[1], 1], k * 3); }
+      gl.bindBuffer(gl.ARRAY_BUFFER, wordBuf); gl.bufferData(gl.ARRAY_BUFFER, wordPts, gl.STATIC_DRAW);
+      gl.uniform1f(U.uDot, step * 0.9 * dpr);
+    }
     gl.uniform1f(U.uLayers, layers);
 
     /* ---------- colours follow the theme ---------- */
@@ -115,6 +151,7 @@
       light = hex(bg).reduce((a, b) => a + b, 0) > 1.5;
       const c = hex(acc);
       gl.uniform3fv(U.uColor, c);
+      gl.uniform3fv(U.uColor2, hex(css.getPropertyValue("--p2").trim() || "#38bdf8"));
       gl.uniform3fv(U.uHotColor, light ? c.map((v) => v * 0.55) : c.map((v) => v + (1 - v) * 0.6));
       if (light) gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); else gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
       if (!running) frame(performance.now());
@@ -136,17 +173,21 @@
       gl.uniform2f(U.uK, k / (W / 2), k / (H / 2));
       gl.uniform1f(U.uDpr, dpr);
       gl.uniform1f(U.uLineY, -1 + 6 / H);
+      buildWord();
       if (!running) frame(performance.now());
     }
 
     /* ---------- state ---------- */
     const t0 = performance.now();
-    let assembleStart = null, running = false, raf = 0, visible = true, rot = 0, last = t0, active = 0;
+    let assembleStart = null, running = false, raf = 0, visible = true, rot = 0, last = t0, active = 0, release = null;
     const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
     function frame(now) {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      if (assembleStart === null && !waitFor()) assembleStart = now + 150;
+      if (assembleStart === null && !waitFor()) { assembleStart = now + (wordMode ? 350 : 150); release = now; }
       const asm = reduceMotion || instant ? 1 : assembleStart === null ? 0 : ease(Math.min(1, Math.max(0, (now - assembleStart) / 2200)));
+      // word: gathers while the intro runs, then lets go so the dots flow on into the stack
+      const wd = !wordMode ? 0 : release === null ? ease(Math.min(1, (now - t0) / 1300)) : 1 - ease(Math.min(1, (now - release) / 1700));
+      gl.uniform1f(U.uWord, wd);
       const hero = canvas.parentElement.getBoundingClientRect();
       const flow = reduceMotion ? 0 : Math.min(1, Math.max(0, -hero.top / (hero.height * 0.75)));
       rot = reduceMotion ? 0 : Math.sin((now - t0) / 1000 * 0.35) * 0.2;   // a slow sway, not a spin
@@ -168,6 +209,7 @@
     recolor(); resize();
     addEventListener("resize", resize);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
+    if (wordMode && document.fonts && document.fonts.load) document.fonts.load("700 100px Geist").then(buildWord, () => {});
     addEventListener("pointermove", (e) => { tilt.tx = (e.clientX / innerWidth - 0.5) * 2; tilt.ty = (e.clientY / innerHeight - 0.5) * 2; }, { passive: true });
     new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible && !document.hidden ? play() : pause(); }).observe(canvas);
     document.addEventListener("visibilitychange", () => { document.hidden || !visible ? pause() : play(); });

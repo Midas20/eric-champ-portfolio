@@ -291,17 +291,23 @@ function loaded() {
 /* ================================================================== */
 /* first visit: a change runs the pipeline to shipped, then the page opens */
 /* ================================================================== */
+const dotWord = (S) => String((S.hero && S.hero.dotWord) || String((S.meta && S.meta.role) || "").trim().split(/\s+/).pop() || "").toUpperCase().slice(0, 14);
+let endIntro = () => {};
 function intro(S, role) {
   const root = document.documentElement;
   if (!root.classList.contains("intro")) return;
   try { sessionStorage.setItem("intro", "1"); } catch (e) {}
+  // with WebGL the hero particles spell a dotted word (hero-gl.js); without it, a change runs the pipeline
+  const word = !!window.WebGL2RenderingContext && !!window.heroParticles && dotWord(S);
   const stages = (S.pipeline.stages || []).slice(0, 7);
-  if (!stages.length) { root.classList.remove("intro"); return; }
+  if (!word && !stages.length) { root.classList.remove("intro"); return; }
   const el = document.createElement("div");
   el.className = "intro-screen"; el.setAttribute("aria-hidden", "true");
-  el.innerHTML = `<div class="i-wrap">
+  const name = `<p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(role || S.meta.role)}</span></p>`;
+  if (word) { root.classList.add("intro-word"); el.innerHTML = `<div class="i-word">${name}<p class="i-skip">Click to skip</p></div>`; }
+  else el.innerHTML = `<div class="i-wrap">
     <ol class="i-track" style="--n:${stages.length}">${stages.map((s, i) => `<li style="--i:${i}"><i></i><span>${esc(s)}</span></li>`).join("")}<b class="i-fill"></b></ol>
-    <p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(role || S.meta.role)}</span></p></div>`;
+    ${name}</div>`;
   document.body.appendChild(el);
   loaded();   // the intro takes over from the loading screen
   const skip = ["click", "keydown", "wheel", "touchstart"];
@@ -310,11 +316,12 @@ function intro(S, role) {
     if (done) return; done = true;
     skip.forEach((e) => removeEventListener(e, finish));
     el.classList.add("out");
-    root.classList.remove("intro");
+    root.classList.remove("intro", "intro-word");
     setTimeout(() => el.remove(), 800);
   };
+  endIntro = finish;
   skip.forEach((e) => addEventListener(e, finish, { passive: true }));
-  setTimeout(finish, 1100 + stages.length * 240);
+  setTimeout(finish, word ? 2900 : 1100 + stages.length * 240);
 }
 
 /* ================================================================== */
@@ -512,8 +519,9 @@ function start(S, route, stacks) {
       canvas, anchor, layers: (S.hero.layers || []).length || 5, getActive: () => heroLayer.cur, reduceMotion,
       waitFor: () => document.documentElement.classList.contains("intro"),
       instant: document.documentElement.classList.contains("seen"),
+      word: dotWord(S),
     });
-    if (!ctl) return;
+    if (!ctl) { endIntro(); return; }   // no WebGL: nothing to spell the word with
     $(".hero").classList.add("gl-on");
     const prev = strata;
     strata = { recolor() { prev.recolor(); ctl.recolor(); } };

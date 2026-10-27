@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css?v=202610280600">
+<link rel="stylesheet" href="/styles.css?v=202610280700">
 <style>
   /* loading screen: inline so it shows before any other file arrives; only fades in if loading takes a moment */
   #loader { position: fixed; inset: 0; z-index: 200; display: grid; place-content: center; justify-items: center; gap: 22px; background: #0e0f13; color: #8b8f9a; --ld-acc: #7b8cff; --ld-acc2: #38bdf8;
@@ -22,16 +22,17 @@
   #loader.done { opacity: 0 !important; visibility: hidden; animation: none; pointer-events: none; }
   @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) #loader { background: #fbfbfc; color: #6b6f7c; --ld-acc: #3f51e0; --ld-acc2: #0284c7; } }
   :root[data-theme="light"] #loader { background: #fbfbfc; color: #6b6f7c; --ld-acc: #3f51e0; --ld-acc2: #0284c7; }
-  .ld-stack { position: relative; width: 88px; height: 92px; }
-  .ld-stack i { position: absolute; left: 16px; top: calc(var(--k) * 13px + 8px); width: 56px; height: 56px; border: 1.5px solid currentColor; border-radius: 5px;
-    transform: scaleY(0.5) rotate(45deg); opacity: 0.25; animation: ld-plate 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) infinite; animation-delay: calc(var(--k) * 0.14s); }
-  .ld-stack i:first-child { border-color: var(--ld-acc); }
+  .ld-rings { position: relative; width: 132px; height: 132px; }
+  .ld-rings i { position: absolute; inset: calc(var(--k) * 24px); border-radius: 50%; border: 1.5px solid var(--ld-acc);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--ld-acc) 50%, transparent), inset 0 0 14px color-mix(in srgb, var(--ld-acc) 30%, transparent);
+    opacity: 0.25; animation: ld-ring 1.6s ease-in-out infinite; animation-delay: calc(var(--k) * -0.3s); }
+  .ld-rings i:nth-child(2) { border-color: var(--ld-acc2); }
   .ld-bar { position: relative; width: 132px; height: 2px; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, currentColor 22%, transparent); }
   .ld-bar::after { content: ""; position: absolute; inset: 0; width: 40%; border-radius: 2px; background: linear-gradient(90deg, var(--ld-acc), var(--ld-acc2)); animation: ld-bar 1.2s ease-in-out infinite; }
   @keyframes ld-in { to { opacity: 1; } }
-  @keyframes ld-plate { 0% { opacity: 0; transform: translateY(-14px) scaleY(0.5) rotate(45deg); } 30%, 70% { opacity: 0.9; transform: scaleY(0.5) rotate(45deg); } 100% { opacity: 0; transform: translateY(10px) scaleY(0.5) rotate(45deg); } }
+  @keyframes ld-ring { 0%, 100% { transform: scale(0.9); opacity: 0.2; } 50% { transform: scale(1); opacity: 0.95; } }
   @keyframes ld-bar { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
-  @media (prefers-reduced-motion: reduce) { .ld-stack i, .ld-bar::after { animation: none; opacity: 0.8; } }
+  @media (prefers-reduced-motion: reduce) { .ld-rings i, .ld-bar::after { animation: none; opacity: 0.8; } }
 </style>
 <script>
   document.documentElement.classList.add('js');
@@ -51,7 +52,7 @@
 </head>
 <body>
 
-<div id="loader" role="status" aria-live="polite"><div class="ld-stack" aria-hidden="true"><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i><i style="--k:3"></i></div><div class="ld-bar" aria-hidden="true"></div><span>Loading</span></div>
+<div id="loader" role="status" aria-live="polite"><div class="ld-rings" aria-hidden="true"><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i></div><div class="ld-bar" aria-hidden="true"></div><span>Loading</span></div>
 <div class="progress" id="progress" aria-hidden="true"></div>
 <canvas id="pageGL" aria-hidden="true"></canvas>
 
@@ -314,7 +315,7 @@
   </div>
 </footer>
 
-<script src="/hero-gl.js?v=202610280500"></script>
-<script src="/main.js?v=202610280600"></script>
+<script src="/hero-gl.js?v=202610280700"></script>
+<script src="/main.js?v=202610280700"></script>
 </body>
 </html>
