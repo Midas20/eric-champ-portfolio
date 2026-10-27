@@ -156,7 +156,7 @@
           "context": "A 12-person support team at a B2B SaaS company, 40k pages of product docs across three wikis.",
           "problem": "Agents spent the first minutes of every ticket searching. Answers were inconsistent and escalations to engineering were climbing.",
           "approach": "Hybrid search (BM25 + pgvector) with a reranker, citations to the exact paragraph, and a feedback loop that flags stale documents. Shipped behind a feature flag, measured against a control group for four weeks.",
-          "result": "Median handling time fell 38%. Escalations to engineering dropped by a third. The team owns the index refresh job and the eval suite without me."
+          "result": "Median handling time fell 38%. Escalations to engineering dropped by a third. The index refresh job and the eval suite are documented, so the project can be handed over to other engineers whenever needed."
         },
         "tags": [
           "Python",
@@ -387,7 +387,7 @@
     "title": "What the *teams* say",
     "items": [
       {
-        "quote": "Eric joined mid-quarter, had a real PR merged in his first week, and by the time he rolled off the team could run the retrieval service without him. That handover is rarer than the engineering.",
+        "quote": "Eric joined mid-quarter and had a real PR merged in his first week. He documented the retrieval service so well that it could be handed over to another engineer at any point. That is rarer than the engineering.",
         "name": "Reference name",
         "role": "VP Engineering, B2B SaaS",
         "sample": true
@@ -403,7 +403,7 @@
   "experience": {
     "eyebrow": "Experience",
     "title": "Teams I’ve helped *ship*",
-    "lede": "{years} years inside agencies, product teams and independent engagements. The constant: leave the team faster and the codebase healthier than I found them.",
+    "lede": "{years} years inside agencies, product teams and independent engagements. The constant: a faster team, a healthier codebase, and every project ready to hand over to others if needed.",
     "items": [
       {
         "dates": "2022 — Present",
@@ -533,14 +533,14 @@
     "title": "The team’s result is the *only score* that counts.",
     "paragraphs": [
       "I’m a full-stack and AI engineer who likes hard problems and clean systems. Over the past decade I’ve worked across the whole stack, from the algorithm at the core up through relational schemas, tested services, HTTP APIs and refined, modern interfaces.",
-      "What I optimise for is simple: the team ships, and keeps shipping after I’ve moved on. That means code the next engineer can read and extend, a git history that explains itself, and the boring, reliable choice whenever the clever one would cost the team later.",
+      "What I optimise for is simple: the team ships, and every project I build can be handed over to other engineers when needed. That means code the next engineer can read and extend, a git history that explains itself, and the boring, reliable choice whenever the clever one would cost the team later.",
       "The range, from RAG pipelines and risk scoring to Go and Rust services, cross-border commerce and native iOS, exists so I can take whichever layer is blocking the team this week."
     ],
     "valuesTitle": "How I work inside a team",
     "values": [
       {
         "title": "Team first.",
-        "text": "Code the next engineer can read and extend without me in the room."
+        "text": "Code another engineer can pick up and extend if the project is handed over."
       },
       {
         "title": "Correctness.",
@@ -611,7 +611,7 @@
       },
       {
         "when": "Day 30",
-        "what": "Handover docs written. The team runs it without me."
+        "what": "Handover docs written, so the project can pass to others whenever needed."
       }
     ],
     "facts": [
