@@ -2,6 +2,7 @@
 //
 //   npm run setup                          # project "portfolio"
 //   PAGES_PROJECT=shiplayer npm run setup  # deploy into an existing project instead
+//   npm run setup -- --new-key             # replace a lost edit link with a new one
 //
 // Steps: log in (opens your browser once), create the KV store, create the Pages
 // project, set the private edit key, deploy, and write your edit link to EDIT-LINK.txt.
@@ -9,6 +10,12 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
+
+// An API token can be used instead of the browser login: put it in .cf-token (one line, never committed).
+if (!process.env.CLOUDFLARE_API_TOKEN && existsSync(".cf-token")) {
+  const t = readFileSync(".cf-token", "utf8").trim();
+  if (t) process.env.CLOUDFLARE_API_TOKEN = t;
+}
 
 const TOML = "wrangler.toml";
 const PLACEHOLDER = "00000000000000000000000000000000";
@@ -74,9 +81,15 @@ if (!projects.out.includes(PROJECT)) {
 }
 
 // 4. private edit key (kept between runs)
+// --new-key: start over with a fresh key (use it if you lost the link or changed it in the editor and lost that one)
+const NEW_KEY = process.argv.includes("--new-key");
 let key = "";
-if (existsSync("EDIT-LINK.txt")) key = (readFileSync("EDIT-LINK.txt", "utf8").match(/\/edit\/([A-Za-z0-9_-]{20,})/) || [])[1] || "";
+if (existsSync("EDIT-LINK.txt") && !NEW_KEY) key = (readFileSync("EDIT-LINK.txt", "utf8").match(/\/edit\/([A-Za-z0-9_-]{20,})/) || [])[1] || "";
 if (!key) key = randomBytes(24).toString("base64url");
+if (NEW_KEY) {
+  log("Removing any key changed from the editor, so the new key takes over");
+  wrangler(["kv", "key", "delete", "auth", "--binding", "PORTFOLIO", "--remote"], { capture: true });
+}
 log("Setting your private edit key");
 if (!wrangler(["pages", "secret", "put", "ADMIN_KEY", "--project-name", PROJECT], { capture: true, input: key + "\n" }).ok) process.exit(1);
 console.log("  Edit key stored as a secret");
@@ -93,7 +106,7 @@ const edit = `${site}/edit/${key}`;
 
 // 6. save the edit link locally (never committed: listed in .gitignore)
 writeFileSync("EDIT-LINK.txt",
-  `Portfolio\n  Site:    ${site}\n  Stacks:  ${site}/stack\n  Editor:  ${edit}\n\nThe editor link is your password. Do not share it or post it anywhere.\nTo change it: delete this file and run  npm run setup  again.\n`);
+  `Portfolio\n  Site:    ${site}\n  Stacks:  ${site}/stack\n  Editor:  ${edit}\n\nThe editor link is your password. Do not share it or post it anywhere.\nChange it any time from the editor (Change edit link); then keep the new link instead of this one.\nLost it? Run  npm run setup -- --new-key  for a fresh link.\n`);
 log("Done");
 console.log(`  Site:    ${site}`);
 console.log(`  Stacks:  ${site}/stack`);

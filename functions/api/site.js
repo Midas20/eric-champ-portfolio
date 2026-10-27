@@ -8,7 +8,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
-  if (!authorized(request, env)) return json({ error: "The edit key was rejected." }, 401);
+  if (!(await authorized(request, env))) return json({ error: "The edit key was rejected." }, 401);
   if (!env.PORTFOLIO) return json({ error: "Storage is not connected. Bind a KV namespace named PORTFOLIO to this Pages project." }, 503);
 
   const body = await request.text();

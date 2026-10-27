@@ -10,5 +10,5 @@ export async function onRequestGet(ctx) {
     // normalise /stack/Next.js → /stack/next-js
     return Response.redirect(new URL(`/stack/${slug}`, request.url).toString(), 301);
   }
-  return renderPage(env, request, slug, ctx.waitUntil.bind(ctx));
+  return renderPage(env, request, { stack: slug, waitUntil: ctx.waitUntil.bind(ctx) });
 }

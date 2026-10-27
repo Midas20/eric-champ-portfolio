@@ -19,7 +19,8 @@
     "skills": "Skills",
     "about": "About",
     "contact": "Contact",
-    "cta": "Get in touch"
+    "cta": "Get in touch",
+    "gallery": "Gallery"
   },
   "hero": {
     "eyebrow": "Available to join your team",
@@ -97,39 +98,48 @@
       },
       {
         "key": "ai",
-        "label": "AI · ML"
+        "label": "AI · ML",
+        "role": "AI"
       },
       {
         "key": "fullstack",
-        "label": "Full-stack"
+        "label": "Full-stack",
+        "role": "Full-stack"
       },
       {
         "key": "fintech",
-        "label": "Fintech"
+        "label": "Fintech",
+        "role": "Fintech"
       },
       {
         "key": "data",
-        "label": "Data · Systems"
+        "label": "Data · Systems",
+        "role": "Data"
       },
       {
         "key": "devtools",
-        "label": "DevTools"
+        "label": "DevTools",
+        "role": "Developer Tools"
       },
       {
         "key": "commerce",
-        "label": "Commerce"
+        "label": "Commerce",
+        "role": "E-commerce"
       },
       {
         "key": "mobile",
-        "label": "Mobile"
+        "label": "Mobile",
+        "role": "Mobile"
       },
       {
         "key": "games",
-        "label": "Games"
+        "label": "Games",
+        "role": "Game"
       },
       {
         "key": "brand",
-        "label": "Brand · Web"
+        "label": "Brand · Web",
+        "role": "Web"
       }
     ],
     "projects": [
@@ -160,7 +170,9 @@
         "ci": "passing",
         "tests": 212,
         "coverage": "91%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       },
       {
         "title": "Riskgrade",
@@ -183,7 +195,9 @@
         "ci": "passing",
         "tests": 164,
         "coverage": "88%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       },
       {
         "title": "Ledgerline",
@@ -206,7 +220,9 @@
         "ci": "passing",
         "tests": 301,
         "coverage": "94%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       },
       {
         "title": "Fareframe",
@@ -229,7 +245,9 @@
         "ci": "passing",
         "tests": 97,
         "coverage": "86%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       },
       {
         "title": "Crossmarket",
@@ -252,7 +270,9 @@
         "ci": "passing",
         "tests": 188,
         "coverage": "90%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       },
       {
         "title": "Pulsewire",
@@ -275,7 +295,9 @@
         "ci": "passing",
         "tests": 143,
         "coverage": "92%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       },
       {
         "title": "Gitgraph",
@@ -297,7 +319,9 @@
         "ci": "passing",
         "tests": 76,
         "coverage": "84%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       },
       {
         "title": "Cadence",
@@ -319,7 +343,9 @@
         "ci": "passing",
         "tests": 58,
         "coverage": "81%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       },
       {
         "title": "Tidewatch",
@@ -341,7 +367,9 @@
         "ci": "passing",
         "tests": 64,
         "coverage": "83%",
-        "sample": true
+        "sample": true,
+        "pinned": false,
+        "hidden": false
       }
     ]
   },
@@ -532,7 +560,8 @@
       "Leadership"
     ],
     "githubNote": "{repos} public repositories, code and tests in the open",
-    "linkedinNote": "Work history and references"
+    "linkedinNote": "Work history and references",
+    "photo": ""
   },
   "contact": {
     "eyebrow": "Contact",
@@ -585,7 +614,74 @@
         "k": "References",
         "v": "Available on request"
       }
+    ],
+    "methods": []
+  },
+  "focus": {
+    "home": "",
+    "presets": [
+      {
+        "name": "AI & ML roles",
+        "slug": "ai",
+        "categories": [
+          "ai",
+          "data"
+        ],
+        "stacks": [],
+        "title": "",
+        "eyebrow": "",
+        "lede": ""
+      },
+      {
+        "name": "Full-stack roles",
+        "slug": "full-stack",
+        "categories": [
+          "fullstack",
+          "commerce",
+          "brand"
+        ],
+        "stacks": [],
+        "title": "",
+        "eyebrow": "",
+        "lede": ""
+      },
+      {
+        "name": "Backend & data roles",
+        "slug": "backend",
+        "categories": [
+          "data",
+          "fintech"
+        ],
+        "stacks": [
+          "go",
+          "rust",
+          "kafka"
+        ],
+        "title": "",
+        "eyebrow": "",
+        "lede": ""
+      }
     ]
+  },
+  "sections": {
+    "order": [
+      "case",
+      "work",
+      "references",
+      "experience",
+      "skills",
+      "gallery",
+      "about",
+      "contact"
+    ],
+    "hidden": []
+  },
+  "customSections": [],
+  "gallery": {
+    "eyebrow": "Gallery",
+    "title": "Work in pictures",
+    "lede": "Screens, diagrams and the teams behind them.",
+    "items": []
   },
   "footer": {
     "left": "Ready to help your team ship.",

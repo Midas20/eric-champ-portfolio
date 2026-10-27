@@ -20,7 +20,8 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { height: 100%; }
+html { height: 100%; }
+body { min-height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14.5px/1.55 var(--font); -webkit-font-smoothing: antialiased; }
 button, input, textarea, select { font: inherit; color: inherit; }
 a { color: inherit; }
@@ -123,3 +124,47 @@ details.item[open] > summary::before { transform: rotate(90deg); }
   .panel { padding-left: max(16px, env(safe-area-inset-left, 0px)); }
   .two { grid-template-columns: 1fr; }
 }
+
+/* ---------- page view: the page beside the form ---------- */
+body.split .layout { grid-template-columns: 250px minmax(340px, 0.85fr) minmax(0, 1.15fr); }
+body.split .panel { padding-right: 1.2rem; }
+.pageview { position: sticky; top: 56px; height: calc(100vh - 56px); display: grid; grid-template-rows: auto 1fr; border-left: 1px solid var(--line); background: var(--bg-2); }
+.pv-bar { display: flex; align-items: center; gap: 0.8rem; padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.pv-bar select { width: auto; padding: 0.3rem 0.5rem; }
+.pv-bar .hint { flex: 1; min-width: 12em; }
+.pageview iframe { width: 100%; height: 100%; border: 0; background: var(--bg); }
+#btnPage[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 1100px) { body.split .layout { grid-template-columns: minmax(0, 1fr); } body.split .side { display: none; } .pageview { position: relative; top: 0; height: 70vh; } }
+.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 0%, 40% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* focus presets */
+.checks { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
+.preset-info { display: grid; gap: 0.5rem; margin-top: 0.4rem; padding: 0.8rem; border: 1px dashed var(--line-strong); border-radius: var(--r); background: var(--bg); }
+.preset-info > div { display: grid; grid-template-columns: 9em minmax(0, 1fr); gap: 0.6rem; align-items: baseline; }
+.preset-info code { font: 0.8rem var(--mono); color: var(--accent); overflow-wrap: anywhere; }
+.preset-info .opt { display: flex; gap: 0.5rem; }
+
+/* sections order */
+.sec-list { display: grid; gap: 1px; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-bottom: 0.8rem; }
+.sec-row { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto auto; gap: 0.8rem; align-items: center; padding: 0.55rem 0.8rem; background: var(--bg-2); }
+.sec-row.off .sec-name { color: var(--muted); text-decoration: line-through; }
+.badge.acc { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.badge.off { color: var(--muted); }
+
+/* images */
+.drop { display: grid; gap: 0.3rem; justify-items: center; text-align: center; padding: 1.6rem 1rem; margin-bottom: 1.2rem; border: 1.5px dashed var(--line-strong); border-radius: var(--r); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.drop:hover, .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.img-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 0.6rem; align-items: center; }
+.img-row img, .img-empty { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
+.img-empty { display: grid; place-items: center; font-size: 0.66rem; color: var(--muted); }
+.sum-img { width: 34px; height: 24px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); }
+.list-h { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.list-search { max-width: 240px; padding: 0.35rem 0.6rem !important; }
+
+/* new edit link */
+.linkbox { border: 1px solid var(--line-strong); border-radius: 12px; background: var(--bg-2); color: var(--fg); padding: 1.4rem; width: min(560px, 92vw); }
+.linkbox::backdrop { background: rgba(0, 0, 0, 0.6); }
+.linkbox h2 { margin: 0 0 0.4rem; font-size: 1.2rem; font-weight: 500; }
+.linkbox code { display: block; margin: 1rem 0; padding: 0.7rem; border-radius: var(--r); background: var(--bg); font: 0.82rem var(--mono); overflow-wrap: anywhere; }
+.linkbox .opt { display: flex; gap: 0.5rem; }

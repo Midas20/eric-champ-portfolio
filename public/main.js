@@ -92,6 +92,181 @@ function fillCounts(v, counts) {
   return v;
 }
 
+/* ---------- focus: tailored versions of the page at /for/<slug> (same rules as lib/site.js) ---------- */
+const presetSlug = (p) => slugify(p.slug || p.name || "");
+const findPreset = (S, slug) => (slug ? ((S.focus && S.focus.presets) || []).find((p) => presetSlug(p) === slug) || null : null);
+function autoRole(S, cats) {
+  const F = S.work.filters || [];
+  const words = [...new Set((cats || []).map((k) => { const f = F.find((x) => x.key === k); return f ? (f.role || f.label) : ""; }).filter(Boolean))].slice(0, 2);
+  if (!words.length) return S.meta.role;
+  return `${words.length === 1 ? words[0] : `${words.slice(0, -1).join(", ")} & ${words[words.length - 1]}`} Engineer`;
+}
+const presetRole = (S, p) => (p.title && p.title.trim()) || autoRole(S, p.categories);
+
+function focusRoute() {
+  if (typeof window.__FOCUS__ === "string") return window.__FOCUS__;
+  const m = location.pathname.match(/^\/for\/([^/]+)\/?$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/* drops hidden projects, applies a preset, puts pinned projects first.
+   S._paths maps a shown field back to where it is stored, for editing on the page. */
+function applyFocus(S, slug) {
+  S._paths = {};
+  S.work.projects = (S.work.projects || []).map((p, i) => ({ ...p, _i: i })).filter((p) => !p.hidden);
+  const preset = findPreset(S, slug);
+  if (preset) {
+    const pi = S.focus.presets.indexOf(preset);
+    const cats = preset.categories || [], tags = (preset.stacks || []).map(slugify);
+    if (cats.length || tags.length) S.work.projects = S.work.projects.filter((p) => cats.includes(p.category) || (p.tags || []).some((t) => tags.includes(slugify(t))));
+    S.meta.role = presetRole(S, preset);
+    S.meta.title = `${S.meta.name} — ${S.meta.role}`;
+    S._paths["meta.role"] = `focus.presets.${pi}.title`;
+    if (preset.eyebrow) { S.hero.eyebrow = preset.eyebrow; S._paths["hero.eyebrow"] = `focus.presets.${pi}.eyebrow`; }
+    if (preset.lede) { S.hero.lede = preset.lede; S._paths["hero.lede"] = `focus.presets.${pi}.lede`; }
+    S.work.filters = (S.work.filters || []).filter((f) => f.key === "all" || S.work.projects.some((p) => p.category === f.key));
+  }
+  S.work.projects.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || a._i - b._i);
+  return preset;
+}
+
+/* ---------- sections: order, hidden, custom ---------- */
+const customId = (c) => `x-${slugify(c.id || c.title || "section")}`;
+
+function customHTML(c, i) {
+  const P = (k) => `data-path="customSections.${i}.${k}"`;
+  const paras = (c.paragraphs || []).filter(Boolean).map((t, j) => `<p data-path="customSections.${i}.paragraphs.${j}">${esc(t)}</p>`).join("");
+  const items = (c.items || []).filter((x) => x && (x.k || x.v)).map((x, j) => `
+    <li class="cl-row reveal" style="--i:${j % 6}">
+      <span class="cl-k" data-path="customSections.${i}.items.${j}.k">${esc(x.k)}</span>
+      <span class="cl-v" data-path="customSections.${i}.items.${j}.v">${esc(x.v)}</span>
+      ${x.link ? `<a class="cl-link" href="${esc(safeUrl(x.link))}" target="_blank" rel="noopener">Open ↗</a>` : "<span></span>"}
+    </li>`).join("");
+  return `<section id="${customId(c)}" class="section custom-sec" data-custom="${i}">
+    <div class="wrap">
+      <div class="section-head reveal">
+        ${c.eyebrow ? `<p class="eyebrow" ${P("eyebrow")}>${esc(c.eyebrow)}</p>` : ""}
+        <h2 ${P("title")}>${esc(c.title)}</h2>
+        ${c.lede ? `<p class="lede" ${P("lede")}>${esc(c.lede)}</p>` : ""}
+      </div>
+      ${paras ? `<div class="custom-text reveal">${paras}</div>` : ""}
+      ${items ? `<ul class="custom-list">${items}</ul>` : ""}
+    </div>
+  </section>`;
+}
+
+function layoutSections(S) {
+  const main = $("main");
+  (S.customSections || []).forEach((c, i) => { if (c && (c.title || c.id)) main.insertAdjacentHTML("beforeend", customHTML(c, i)); });
+  const all = $$("main > section.section").map((s) => s.id).filter(Boolean);
+  const L = S.sections || {};
+  const order = [...(L.order || []).filter((id) => all.includes(id)), ...all.filter((id) => !(L.order || []).includes(id))];
+  // contact closes the page unless it was placed explicitly
+  if (!(L.order || []).includes("contact")) { order.splice(order.indexOf("contact"), 1); order.push("contact"); }
+  order.forEach((id) => main.appendChild(document.getElementById(id)));
+  (L.hidden || []).forEach((id) => { const s = document.getElementById(id); if (s) { s.hidden = true; s.dataset.off = "1"; } });
+  if (!(S.gallery && (S.gallery.items || []).length)) $("#gallery").hidden = true;
+  else if (!$("#gallery").dataset.off) $("#gallery").hidden = false;
+
+  // the top menu follows the section order
+  const label = (id) => {
+    if (id.startsWith("x-")) { const i = (S.customSections || []).findIndex((c) => customId(c) === id); const c = S.customSections[i]; return c && c.nav ? [c.nav, `customSections.${i}.nav`] : null; }
+    return S.nav[id] ? [S.nav[id], `nav.${id}`] : null;
+  };
+  $("#navLinks").innerHTML = order.map((id) => {
+    const sec = document.getElementById(id), l = label(id);
+    if (!l || sec.hidden) return "";
+    return `<a href="/#${id}" data-path="${l[1]}">${esc(l[0])}</a>`;
+  }).join("");
+}
+
+/* ---------- contact methods ---------- */
+const METHOD_ICON = { email: "@", phone: "☏", github: "⌥", linkedin: "in", x: "𝕏", website: "↗", calendar: "◷", location: "⌖", telegram: "➤", whatsapp: "✆", other: "•" };
+function methodHref(m) {
+  const v = String(m.value || "").trim();
+  if (m.href) return safeUrl(m.href);
+  if (!v) return "";
+  if (m.type === "email") return `mailto:${v}`;
+  if (m.type === "phone" || m.type === "whatsapp") return m.type === "phone" ? `tel:${v.replace(/[^\d+]/g, "")}` : `https://wa.me/${v.replace(/\D/g, "")}`;
+  if (m.type === "location") return "";
+  if (/^https?:\/\//i.test(v)) return v;
+  if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(v)) return `https://${v}`;
+  return "";
+}
+
+function vcard(S) {
+  const line = (k, v) => `${k}:${String(v).replace(/([,;\\])/g, "\\$1").replace(/\n/g, "\\n")}`;
+  const out = ["BEGIN:VCARD", "VERSION:3.0", line("FN", S.meta.name), line("TITLE", S.meta.role), line("URL", location.origin + "/")];
+  const email = S.config && S.config.email;
+  if (email) out.push(line("EMAIL;TYPE=INTERNET", email));
+  (S.contact.methods || []).forEach((m) => {
+    if (!m || !m.value) return;
+    if (m.type === "email" && m.value !== email) out.push(line("EMAIL;TYPE=INTERNET", m.value));
+    else if (m.type === "phone") out.push(line("TEL;TYPE=CELL", m.value));
+    else if (m.type === "location") out.push(line("ADR", `;;${m.value};;;;`));
+    else { const h = methodHref(m); if (/^https?:/.test(h)) out.push(line("URL", h)); }
+  });
+  if (S.config && S.config.github) out.push(line("URL", S.config.github));
+  out.push("END:VCARD");
+  return out.join("\r\n");
+}
+
+/* ---------- on-page editing (inside the editor's page view) ---------- */
+const INLINE = new URLSearchParams(location.search).has("inline") && window.parent !== window;
+
+function enableInline(raw, S) {
+  document.documentElement.classList.add("inline-mode");
+  const post = (msg) => window.parent.postMessage({ source: "portfolio-page", ...msg }, location.origin);
+  const target = (el) => (el.dataset.t ? (S._paths[el.dataset.t] || el.dataset.t) : el.dataset.path);
+  $$("[data-t], [data-path]").forEach((el) => {
+    const path = target(el), v = get(raw, path);
+    if (el.closest(".head-art, .lightbox, .intro-screen")) return;
+    if (typeof v === "string" && /\{(repos|projects|stacks|years|layers)\}/.test(v)) { el.classList.add("ie-lock"); el.title = "Calculated for you. Change it in the form."; return; }
+    if (v !== undefined && typeof v !== "string" && typeof v !== "number") return;
+    el.classList.add("ie");
+    el.setAttribute("contenteditable", "plaintext-only");
+    if (el.contentEditable !== "plaintext-only") el.setAttribute("contenteditable", "true");
+    el.spellcheck = true;
+    el.dataset.edit = path;
+  });
+  document.addEventListener("input", (e) => {
+    const el = e.target.closest && e.target.closest("[data-edit]");
+    if (el) post({ type: "edit", path: el.dataset.edit, value: el.textContent });
+  });
+  document.addEventListener("keydown", (e) => {
+    const el = e.target.closest && e.target.closest("[data-edit]");
+    if (!el) return;
+    if (e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)) { e.preventDefault(); el.blur(); }
+  });
+  document.addEventListener("focusin", (e) => { const el = e.target.closest && e.target.closest("[data-edit]"); if (el) post({ type: "select", path: el.dataset.edit }); });
+  // links do not navigate while editing; Ctrl/Cmd+click still follows them
+  document.addEventListener("click", (e) => { const a = e.target.closest("a"); if (a && !(e.ctrlKey || e.metaKey) && !a.getAttribute("href").startsWith("#") && !a.getAttribute("href").startsWith("/#")) e.preventDefault(); }, true);
+  addEventListener("message", (e) => {
+    if (e.origin !== location.origin || !e.data || e.data.source !== "portfolio-editor") return;
+    if (e.data.type === "reveal") {
+      const el = $$("[data-edit]").find((x) => x.dataset.edit === e.data.path);
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+      el.classList.remove("ie-flash"); void el.offsetWidth; el.classList.add("ie-flash");
+    }
+  });
+  // keep the scroll position across reloads triggered by form edits
+  try { const y = +sessionStorage.getItem("inline-scroll"); if (y) requestAnimationFrame(() => scrollTo(0, y)); } catch (e) {}
+  addEventListener("scroll", () => { try { sessionStorage.setItem("inline-scroll", String(scrollY)); } catch (e) {} }, { passive: true });
+  post({ type: "ready" });
+}
+
+/* ---------- owner shortcut: only on a device that has opened the editor ---------- */
+function ownerShortcut() {
+  let url = "";
+  try { url = localStorage.getItem("editor-url") || ""; } catch (e) {}
+  if (!/^\/edit\/[A-Za-z0-9_-]{16,}$/.test(url) || window.parent !== window) return;
+  const a = document.createElement("a");
+  a.className = "owner-edit"; a.href = url; a.textContent = "Edit"; a.title = "Open the editor (Ctrl+Shift+E). Only shown on this device.";
+  document.body.appendChild(a);
+  addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "e") { e.preventDefault(); location.href = url; } });
+}
+
 async function loadSite() {
   const params = new URLSearchParams(location.search);
   if (params.has("draft")) {
@@ -107,7 +282,7 @@ async function loadSite() {
 /* ================================================================== */
 /* first visit: a change runs the pipeline to shipped, then the page opens */
 /* ================================================================== */
-function intro(S) {
+function intro(S, role) {
   const root = document.documentElement;
   if (!root.classList.contains("intro")) return;
   try { sessionStorage.setItem("intro", "1"); } catch (e) {}
@@ -117,7 +292,7 @@ function intro(S) {
   el.className = "intro-screen"; el.setAttribute("aria-hidden", "true");
   el.innerHTML = `<div class="i-wrap">
     <ol class="i-track" style="--n:${stages.length}">${stages.map((s, i) => `<li style="--i:${i}"><i></i><span>${esc(s)}</span></li>`).join("")}<b class="i-fill"></b></ol>
-    <p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(S.meta.role)}</span></p></div>`;
+    <p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(role || S.meta.role)}</span></p></div>`;
   document.body.appendChild(el);
   const skip = ["click", "keydown", "wheel", "touchstart"];
   let done = false;
@@ -138,6 +313,7 @@ function intro(S) {
 function render(S, route, stacks) {
   // plain text bindings
   $$("[data-t]").forEach((el) => { const v = get(S, el.dataset.t); if (v != null) el.textContent = v; });
+  layoutSections(S);
 
   // title and description (functions also set these server-side for link previews)
   let title = S.meta.title, desc = S.meta.description;
@@ -160,45 +336,60 @@ function render(S, route, stacks) {
   if (more) { if (C.allProjectsUrl) more.href = safeUrl(C.allProjectsUrl); else more.closest(".more").hidden = true; }
 
   // hero stats
-  $("#heroStats").innerHTML = (S.hero.stats || []).filter((s) => String(s.value).trim() !== "" && !isNaN(Number(s.value))).map((s) => {
-    const inner = `<span class="num" data-count="${Number(s.value) || 0}" data-suffix="${esc(s.suffix || "")}">0</span><span class="num-label">${esc(s.label)}</span>`;
+  $("#heroStats").innerHTML = (S.hero.stats || []).map((s, i) => ({ ...s, i })).filter((s) => String(s.value).trim() !== "" && !isNaN(Number(s.value))).map((s) => {
+    const inner = `<span class="num" data-count="${Number(s.value) || 0}" data-suffix="${esc(s.suffix || "")}">0</span><span class="num-label" data-path="hero.stats.${s.i}.label">${esc(s.label)}</span>`;
     return `<li>${s.linkToGithub && C.github ? `<a href="${esc(safeUrl(C.github))}" target="_blank" rel="noopener">${inner}</a>` : inner}</li>`;
   }).join("");
 
   // pipeline stages
   const stages = S.pipeline.stages || [];
-  $("#pipe").innerHTML = stages.map((st, i) => `<li${i === stages.length - 1 ? ' class="pipe-ship"' : ""}><i></i><span>${esc(st)}</span></li>`).join("");
+  $("#pipe").innerHTML = stages.map((st, i) => `<li${i === stages.length - 1 ? ' class="pipe-ship"' : ""}><i></i><span data-path="pipeline.stages.${i}">${esc(st)}</span></li>`).join("");
 
   // experience
   const tl = $("#timeline");
-  tl.insertAdjacentHTML("beforeend", (S.experience.items || []).map((it) => `
+  tl.insertAdjacentHTML("beforeend", (S.experience.items || []).map((it, i) => {
+    const P = (k) => `data-path="experience.items.${i}.${k}"`;
+    return `
     <article class="tl-item reveal">
       <div class="tl-dot"></div>
-      <p class="tl-date">${esc(it.dates)}</p>
-      <h3>${esc(it.title)}</h3>
-      <p class="tl-org">${esc(it.org)}</p>
-      <p>${esc(it.text)}</p>
-    </article>`).join(""));
-  $("#certs").innerHTML = (S.experience.certifications || []).map((c) => `<li>${esc(c)}</li>`).join("");
+      <p class="tl-date" ${P("dates")}>${esc(it.dates)}</p>
+      <h3 ${P("title")}>${esc(it.title)}</h3>
+      <p class="tl-org" ${P("org")}>${esc(it.org)}</p>
+      <p ${P("text")}>${esc(it.text)}</p>
+    </article>`;
+  }).join(""));
+  $("#certs").innerHTML = (S.experience.certifications || []).map((c, i) => `<li data-path="experience.certifications.${i}">${esc(c)}</li>`).join("");
 
   // skills, each item links to its stack page
   const active = route && route.slug;
   $("#skillsGrid").innerHTML = (S.skills.groups || []).map((g, i) => `
     <div class="skill-group reveal" style="--i:${i}">
-      <h3>${esc(g.name)}</h3>
+      <h3 data-path="skills.groups.${i}.name">${esc(g.name)}</h3>
       <ul>${(g.items || []).map((t) => { const s = slugify(t); return `<li><a class="stack-link${s === active ? " on" : ""}" href="/stack/${s}">${esc(t)}</a></li>`; }).join("")}</ul>
     </div>`).join("");
 
+  // gallery
+  const G = (S.gallery && S.gallery.items) || [];
+  $("#galleryGrid").innerHTML = G.map((g, i) => `
+    <figure class="g-item reveal" style="--i:${i % 6}">
+      <button class="g-open" type="button" data-g="${i}" aria-label="Open image ${i + 1}${g.alt ? `: ${esc(g.alt)}` : ""}">
+        <img src="${esc(safeUrl(g.src))}" alt="${esc(g.alt || "")}" loading="lazy" decoding="async"${g.w && g.h ? ` width="${+g.w}" height="${+g.h}"` : ""}>
+      </button>
+      ${g.caption ? `<figcaption data-path="gallery.items.${i}.caption">${esc(g.caption)}</figcaption>` : ""}
+    </figure>`).join("");
+
   // about
-  $("#aboutParas").innerHTML = (S.about.paragraphs || []).map((p) => `<p>${esc(p)}</p>`).join("");
-  $("#values").innerHTML = (S.about.values || []).map((v) => `<li><strong>${esc(v.title)}</strong> ${esc(v.text)}</li>`).join("");
+  const photo = $("#aboutPhoto");
+  if (S.about.photo) { photo.innerHTML = `<img src="${esc(safeUrl(S.about.photo))}" alt="${esc(S.meta.name)}" loading="lazy" decoding="async">`; photo.hidden = false; }
+  $("#aboutParas").innerHTML = (S.about.paragraphs || []).map((p, i) => `<p data-path="about.paragraphs.${i}">${esc(p)}</p>`).join("");
+  $("#values").innerHTML = (S.about.values || []).map((v, i) => `<li><strong data-path="about.values.${i}.title">${esc(v.title)}</strong> <span data-path="about.values.${i}.text">${esc(v.text)}</span></li>`).join("");
 
   // contact
-  const pairs = (list) => (list || []).map((x) => `<div><dt>${esc(x.k)}</dt><dd>${esc(x.v)}</dd></div>`).join("");
-  $("#lookingFor").innerHTML = pairs(S.contact.lookingFor);
+  const pairs = (list, base) => (list || []).map((x, i) => `<div><dt data-path="${base}.${i}.k">${esc(x.k)}</dt><dd data-path="${base}.${i}.v">${esc(x.v)}</dd></div>`).join("");
+  $("#lookingFor").innerHTML = pairs(S.contact.lookingFor, "contact.lookingFor");
   if (!(S.contact.lookingFor || []).length) $("#lookingFor").closest(".looking").hidden = true;
-  $("#plan").innerHTML = (S.contact.plan || []).map((x) => `<li><span class="plan-when">${esc(x.when)}</span><span class="plan-what">${esc(x.what)}</span></li>`).join("");
-  $("#facts").innerHTML = pairs(S.contact.facts);
+  $("#plan").innerHTML = (S.contact.plan || []).map((x, i) => `<li><span class="plan-when" data-path="contact.plan.${i}.when">${esc(x.when)}</span><span class="plan-what" data-path="contact.plan.${i}.what">${esc(x.what)}</span></li>`).join("");
+  $("#facts").innerHTML = pairs(S.contact.facts, "contact.facts");
 }
 
 /* ================================================================== */
@@ -412,7 +603,7 @@ function start(S, route, stacks) {
   /* ---------- featured case study ---------- */
   (function caseStudy() {
     const sec = $("#case"), p = projects.find((x) => x.caseStudy);
-    if (!sec || !p || route) return;   // stack pages lead with the filtered work
+    if (!sec || sec.dataset.off || !p || route) return;   // stack pages lead with the filtered work
     const c = p.caseStudy;
     $("#caseTitle").textContent = p.title;
     $("#caseContext").textContent = c.context || "";
@@ -423,17 +614,20 @@ function start(S, route, stacks) {
     $("#caseMetricLabel").textContent = p.metric ? p.metric.label : "";
     $("#caseLinks").innerHTML = `<a href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener">Live ↗</a><a href="${esc(safeUrl(p.repo))}" target="_blank" rel="noopener">Source ↗</a>`;
     $("#caseSample").hidden = !p.sample;
+    const base = `work.projects.${p._i}`;
+    [["#caseTitle", "title"], ["#caseContext", "caseStudy.context"], ["#caseProblem", "caseStudy.problem"], ["#caseApproach", "caseStudy.approach"],
+      ["#caseResult", "caseStudy.result"], ["#caseMetric", "metric.value"], ["#caseMetricLabel", "metric.label"]].forEach(([sel, k]) => { $(sel).dataset.path = `${base}.${k}`; });
     sec.hidden = false;
   })();
 
   /* ---------- references ---------- */
   (function references() {
     const sec = $("#references"), box = $("#refs"), refs = S.references.items || [];
-    if (!sec || !box || !refs.length) return;
+    if (!sec || sec.dataset.off || !box || !refs.length) return;
     box.innerHTML = refs.map((r, i) => `
       <figure class="ref reveal" style="--i:${i}">
-        <blockquote>${esc(r.quote)}</blockquote>
-        <figcaption><strong>${esc(r.name)}</strong><span class="muted">${esc(r.role)}</span>${r.sample ? '<span class="sample-tag">Example, replace with a real reference</span>' : ""}</figcaption>
+        <blockquote data-path="references.items.${i}.quote">${esc(r.quote)}</blockquote>
+        <figcaption><strong data-path="references.items.${i}.name">${esc(r.name)}</strong><span class="muted" data-path="references.items.${i}.role">${esc(r.role)}</span>${r.sample ? '<span class="sample-tag">Example, replace with a real reference</span>' : ""}</figcaption>
       </figure>`).join("");
     sec.hidden = false;
     $$(".ref", box).forEach((el) => revealIO.observe(el));
@@ -456,13 +650,13 @@ function start(S, route, stacks) {
     const rowHTML = (p, i) => `
       <article class="row" style="--i:${i % 6}">
         <div class="row-main">
-          <div class="row-head"><h3>${esc(p.title)}</h3><span class="row-year">${esc(p.year)}</span>${p.sample ? '<span class="sample-tag">Example</span>' : ""}</div>
-          <p class="row-blurb">${esc(p.blurb)}</p>
-          ${p.outcome ? `<p class="row-outcome"><span class="k">Outcome</span>${esc(p.outcome)}</p>` : ""}
+          <div class="row-head"><h3 data-path="work.projects.${p._i}.title">${esc(p.title)}</h3><span class="row-year">${esc(p.year)}</span>${p.sample ? '<span class="sample-tag">Example</span>' : ""}</div>
+          <p class="row-blurb" data-path="work.projects.${p._i}.blurb">${esc(p.blurb)}</p>
+          ${p.outcome ? `<p class="row-outcome"><span class="k">Outcome</span><span data-path="work.projects.${p._i}.outcome">${esc(p.outcome)}</span></p>` : ""}
           ${meta(p)}
         </div>
         <div class="row-side">
-          ${p.metric ? `<p class="row-metric"><b>${esc(p.metric.value)}</b><span>${esc(p.metric.label)}</span></p>` : ""}
+          ${p.metric ? `<p class="row-metric"><b data-path="work.projects.${p._i}.metric.value">${esc(p.metric.value)}</b><span data-path="work.projects.${p._i}.metric.label">${esc(p.metric.label)}</span></p>` : ""}
           <span class="row-cat">${esc(labelOf[p.category] || p.category || "")}</span>
           <ul class="row-tags">${(p.tags || []).map((t) => { const s = slugify(t); return `<li><a class="stack-link${s === activeSlug ? " on" : ""}" href="/stack/${s}">${esc(t)}</a></li>`; }).join("")}</ul>
           <div class="row-links">
@@ -813,13 +1007,53 @@ function start(S, route, stacks) {
           stop() { running = false; cancelAnimationFrame(raf); clearTimeout(timer); packet.setAttribute("opacity", "0"); },
         };
       },
+
+      /* a contact sheet of the uploaded images, with a viewfinder moving across it */
+      gallery(el) {
+        const items = ((S.gallery && S.gallery.items) || []).slice(0, 6);
+        if (!items.length) return null;
+        el.innerHTML = panel("contact-sheet", `<span class="live">${S.gallery.items.length} image${S.gallery.items.length > 1 ? "s" : ""}</span>`,
+          `<div class="cs-grid" style="--n:${Math.min(3, items.length)}">${items.map((g, i) => `<span class="cs-cell" data-i="${i}"><img src="${esc(safeUrl(g.src))}" alt="" loading="lazy" decoding="async"><b>${String(i + 1).padStart(2, "0")}</b></span>`).join("")}</div>`,
+          `<span class="cs-cap"></span><span class="push">click any image to open it</span>`);
+        const cells = $$(".cs-cell", el), capEl = $(".cs-cap", el);
+        let k = 0, timer = 0, running = false;
+        const show = (i) => { cells.forEach((c, j) => c.classList.toggle("on", j === i)); capEl.textContent = items[i].caption || items[i].alt || `image ${i + 1}`; };
+        function next() { if (!running) return; show(k++ % items.length); timer = setTimeout(next, 2000); }
+        return {
+          start() { if (running) return; running = true; if (reduceMotion) return show(0); next(); },
+          stop() { running = false; clearTimeout(timer); },
+        };
+      },
+
+      /* a custom list section: its entries tick off one by one */
+      custom(el, sec) {
+        const c = (S.customSections || [])[+sec.dataset.custom];
+        const items = ((c && c.items) || []).filter((x) => x && (x.k || x.v)).slice(0, 6);
+        if (!items.length) return null;
+        el.innerHTML = panel(`${esc(customId(c).slice(2))}.log`, `<span class="live">${c.items.length} entr${c.items.length > 1 ? "ies" : "y"}</span>`,
+          `<ul class="ck-list">${items.map((x) => `<li><span class="ck-box"></span><span class="ck-k">${esc(clip(x.k || x.v, 40))}</span><span class="ck-v">${esc(clip(x.k ? x.v : "", 34))}</span></li>`).join("")}</ul>`,
+          `<span class="ck-done">0 / ${items.length}</span><span class="push">${items.some((x) => x.link) ? "with links" : ""}</span>`);
+        const lis = $$(".ck-list li", el), done = $(".ck-done", el);
+        let timers = [], running = false;
+        const later = wait(timers);
+        function play() {
+          lis.forEach((li) => li.classList.remove("on")); done.textContent = `0 / ${items.length}`;
+          lis.forEach((li, i) => later(() => { li.classList.add("on"); done.textContent = `${i + 1} / ${items.length}`; }, 400 + i * 550));
+          later(() => { if (running) play(); }, 400 + items.length * 550 + 3600);
+        }
+        return {
+          start() { if (running) return; running = true; if (reduceMotion) { lis.forEach((li) => li.classList.add("on")); done.textContent = `${items.length} / ${items.length}`; return; } play(); },
+          stop() { running = false; timers.forEach(clearTimeout); timers = []; },
+        };
+      },
     };
     const loops = new Map();
     const artIO = new IntersectionObserver((entries) => entries.forEach((en) => {
       const ctl = loops.get(en.target);
       if (en.isIntersecting) { en.target.classList.add("on"); if (ctl) ctl.start(); } else if (ctl) ctl.stop();
     }), { threshold: 0.25 });
-    Object.keys(builders).forEach((id) => {
+    const targets = [...Object.keys(builders).map((id) => [id, builders[id]]), ...$$("section.custom-sec").map((s) => [s.id, builders.custom])];
+    targets.forEach(([id, build]) => {
       const sec = document.getElementById(id), head = sec && $(".section-head", sec);
       if (!head || sec.hidden) return;
       const art = document.createElement("div");
@@ -827,7 +1061,7 @@ function start(S, route, stacks) {
       const rows = head.children.length;
       head.classList.add("has-art"); head.appendChild(art);
       art.style.gridRow = `1 / span ${Math.max(rows, 1)}`;
-      const ctl = builders[id](art);
+      const ctl = build(art, sec);
       if (ctl === null && !art.innerHTML) { art.remove(); head.classList.remove("has-art"); return; }
       if (ctl) loops.set(art, ctl);
       artIO.observe(art);
@@ -915,20 +1149,81 @@ function start(S, route, stacks) {
       setTimeout(() => { label.textContent = "Copy"; }, 1600);
     });
   })();
+
+  /* ---------- contact methods: one row each, with copy, plus a contact card to save ---------- */
+  (function methods() {
+    const box = $("#methods"), list = (S.contact.methods || []).filter((m) => m && m.value);
+    if (!box || !list.length) return;
+    box.innerHTML = list.map((m) => {
+      const i = S.contact.methods.indexOf(m), href = methodHref(m), type = METHOD_ICON[m.type] ? m.type : "other";
+      const value = href
+        ? `<a class="m-val" href="${esc(href)}"${/^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ""} data-path="contact.methods.${i}.value">${esc(m.value)}</a>`
+        : `<span class="m-val" data-path="contact.methods.${i}.value">${esc(m.value)}</span>`;
+      return `<li class="m-row"><span class="m-ico" data-type="${type}" aria-hidden="true">${METHOD_ICON[type]}</span>
+        <span class="m-label" data-path="contact.methods.${i}.label">${esc(m.label || m.type)}</span>${value}
+        <button class="m-copy" type="button" data-copy="${esc(m.value)}" aria-label="Copy ${esc(m.label || m.type)}">Copy</button></li>`;
+    }).join("") + `<li class="m-row m-card"><span class="m-ico" aria-hidden="true">⇩</span><span class="m-label">Contact card</span>
+      <button class="m-val m-vcf" type="button">Save ${esc(S.meta.name)} to contacts (.vcf)</button><span></span></li>`;
+    box.hidden = false;
+    $(".socials").hidden = true;
+    box.addEventListener("click", async (e) => {
+      const c = e.target.closest(".m-copy");
+      if (c) {
+        try { await navigator.clipboard.writeText(c.dataset.copy); c.textContent = "Copied"; } catch (err) { c.textContent = "Press Ctrl+C"; }
+        setTimeout(() => { c.textContent = "Copy"; }, 1500);
+        return;
+      }
+      if (e.target.closest(".m-vcf")) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([vcard(S)], { type: "text/vcard" }));
+        a.download = `${slugify(S.meta.name) || "contact"}.vcf`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
+    });
+  })();
+
+  /* ---------- gallery viewer: arrows, Esc, swipe ---------- */
+  (function lightbox() {
+    const items = (S.gallery && S.gallery.items) || [], dlg = $("#lightbox");
+    if (!items.length || !dlg || typeof dlg.showModal !== "function") return;
+    const img = $("#lbImg"), cap = $("#lbCap"), count = $("#lbCount");
+    let k = 0;
+    const show = (i) => {
+      k = (i + items.length) % items.length;
+      const g = items[k];
+      img.src = safeUrl(g.src); img.alt = g.alt || "";
+      cap.textContent = g.caption || ""; count.textContent = `${k + 1} / ${items.length}`;
+      $("#lbPrev").hidden = $("#lbNext").hidden = items.length < 2;
+    };
+    $("#galleryGrid").addEventListener("click", (e) => { const b = e.target.closest(".g-open"); if (b) { show(+b.dataset.g); dlg.showModal(); } });
+    $("#lbPrev").addEventListener("click", () => show(k - 1));
+    $("#lbNext").addEventListener("click", () => show(k + 1));
+    $("#lbClose").addEventListener("click", () => dlg.close());
+    dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+    dlg.addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") show(k - 1); if (e.key === "ArrowRight") show(k + 1); });
+    let x0 = null;
+    dlg.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    dlg.addEventListener("touchend", (e) => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) show(k + (dx < 0 ? 1 : -1)); x0 = null; });
+  })();
 }
 
 /* ================================================================== */
 (async function boot() {
   const raw = await loadSite();
   if (!raw) { document.body.insertAdjacentHTML("afterbegin", '<p style="padding:2rem">Could not load site data.</p>'); return; }
-  intro(raw);
+  const route = stackRoute();
+  const focus = route ? "" : (focusRoute() ?? ((raw.focus && raw.focus.home) || ""));
+  const preset = findPreset(raw, focus);
+  intro(raw, preset ? presetRole(raw, preset) : "");
   // let the intro paint its first frame before the page is built underneath it
   if (document.documentElement.classList.contains("intro")) await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   const S = fillCounts(raw, await siteCounts(raw));
-  const route = stackRoute();
+  applyFocus(S, focus);
   const stacks = stackIndex(S);
   // stack pages open on the filtered work, so the hero and pipeline step aside
   if (route) { document.documentElement.classList.add("stack-page"); $(".hero").hidden = true; $(".pipeline-band").hidden = true; }
   render(S, route, stacks);
   start(S, route, stacks);
+  if (INLINE) enableInline(raw, S); else ownerShortcut();
 })();

@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/editor.css?v=202610271200">
+<link rel="stylesheet" href="/editor.css?v=202610272010">
 </head>
 <body>
 
@@ -22,6 +22,7 @@
   </div>
   <div class="bar-r">
     <a class="btn ghost" href="/" target="_blank" rel="noopener">Open live site ↗</a>
+    <button id="btnPage" class="btn ghost" type="button" aria-pressed="false" title="Show the page beside the form. Click any text on it to edit.">Edit on page</button>
     <button id="btnPreview" class="btn ghost" type="button">Preview draft</button>
     <button id="btnSave" class="btn primary" type="button" disabled>Publish</button>
   </div>
@@ -42,7 +43,14 @@
       <div id="history" class="history"><p class="side-note">Saved automatically each time you publish.</p></div>
     </div>
 
+    <div class="side-group">
+      <p class="side-h">This device</p>
+      <div id="device"></div>
+    </div>
+
     <div class="side-group tools">
+      <button id="btnKey" class="link" type="button">Change edit link</button>
+      <button id="btnImages" class="link" type="button">Clean up unused images</button>
       <button id="btnJson" class="link" type="button">Edit as JSON</button>
       <button id="btnExport" class="link" type="button">Export backup</button>
       <label class="link" for="fileImport">Import backup</label>
@@ -52,6 +60,16 @@
   </aside>
 
   <main id="panel" class="panel" tabindex="-1"></main>
+
+  <section id="pageView" class="pageview" hidden aria-label="Page view">
+    <div class="pv-bar">
+      <select id="pvFocus" aria-label="Which version of the page"></select>
+      <span class="hint">Click any outlined text to edit it. Dotted text is calculated.</span>
+      <button id="pvReload" class="link" type="button">Reload</button>
+      <button id="pvOpen" class="link" type="button">Open in a tab ↗</button>
+    </div>
+    <iframe id="pvFrame" title="Your page, editable" src="about:blank"></iframe>
+  </section>
 </div>
 
 <div id="gate" class="gate" hidden>
@@ -67,6 +85,6 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script src="/editor.js?v=202610271400"></script>
+<script src="/editor.js?v=202610272000"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 import { json, authorized } from "../../../lib/site.js";
 
 export async function onRequestGet({ request, env, params }) {
-  if (!authorized(request, env)) return json({ error: "The edit key was rejected." }, 401);
+  if (!(await authorized(request, env))) return json({ error: "The edit key was rejected." }, 401);
   if (!env.PORTFOLIO) return json({ error: "Storage is not connected." }, 503);
   const id = String(params.id || "");
   if (!/^[0-9TZ-]+$/.test(id)) return json({ error: "Unknown version." }, 404);

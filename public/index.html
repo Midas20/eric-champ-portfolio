@@ -12,12 +12,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css?v=202610271710">
+<link rel="stylesheet" href="/styles.css?v=202610272000">
 <script>
   document.documentElement.classList.add('js');
   try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
   try {
-    if (location.pathname === '/' && !/draft/.test(location.search) && !sessionStorage.getItem('intro') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if ((location.pathname === '/' || /^\/for\//.test(location.pathname)) && !/draft/.test(location.search) && !sessionStorage.getItem('intro') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       document.documentElement.classList.add('intro');
       setTimeout(function () { document.documentElement.classList.remove('intro'); }, 6000);
     }
@@ -60,7 +60,7 @@
     <canvas id="strata" aria-hidden="true"></canvas>
     <div class="wrap hero-inner">
       <div class="hero-head">
-        <p class="eyebrow hero-eyebrow"><span class="status-dot"></span><span data-t="hero.eyebrow">Available to join your team</span></p>
+        <p class="eyebrow hero-eyebrow"><span class="status-dot"></span><span data-t="hero.eyebrow">Available to join your team</span><span class="hero-role"><span class="sep" aria-hidden="true">·</span><span data-t="meta.role"></span></span></p>
         <h1 class="hero-title">
           <span class="line"><span class="line-in" data-t="hero.titleLine1">Software that ships,</span></span>
           <span class="line"><span class="line-in" data-t="hero.titleLine2">across every layer.</span></span>
@@ -186,6 +186,18 @@
     </div>
   </section>
 
+  <!-- ============ GALLERY ============ -->
+  <section id="gallery" class="section" hidden>
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow" data-t="gallery.eyebrow">Gallery</p>
+        <h2 data-t="gallery.title"></h2>
+        <p class="lede" data-t="gallery.lede"></p>
+      </div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </section>
+
   <!-- ============ ABOUT ============ -->
   <section id="about" class="section">
     <div class="wrap">
@@ -202,6 +214,7 @@
           </div>
         </div>
         <aside class="about-side">
+          <figure class="about-photo reveal" id="aboutPhoto" hidden></figure>
           <div class="side-block reveal" style="--i:1">
             <p class="eyebrow"><span class="status-dot"></span><span data-t="about.statusTitle">Status</span></p>
             <p data-t="about.status"></p>
@@ -238,6 +251,7 @@
           <a class="email" id="emailLink" href="#"></a>
           <button class="btn btn-ghost btn-sm" id="copyEmail" type="button"><span>Copy</span></button>
         </div>
+        <ul class="methods reveal" id="methods" hidden></ul>
         <div class="socials reveal">
           <a data-github href="#" target="_blank" rel="noopener">GitHub ↗</a>
           <a data-linkedin href="#" target="_blank" rel="noopener" hidden>LinkedIn ↗</a>
@@ -257,6 +271,14 @@
 
 </main>
 
+<dialog class="lightbox" id="lightbox" aria-label="Image viewer">
+  <figure class="lb-fig"><img id="lbImg" alt=""><figcaption id="lbCap"></figcaption></figure>
+  <button class="lb-btn lb-prev" id="lbPrev" type="button" aria-label="Previous image">←</button>
+  <button class="lb-btn lb-next" id="lbNext" type="button" aria-label="Next image">→</button>
+  <button class="lb-btn lb-close" id="lbClose" type="button" aria-label="Close">✕</button>
+  <span class="lb-count" id="lbCount"></span>
+</dialog>
+
 <footer class="footer">
   <div class="wrap footer-inner">
     <p data-t="footer.left"></p>
@@ -265,6 +287,6 @@
   </div>
 </footer>
 
-<script src="/main.js?v=202610271710"></script>
+<script src="/main.js?v=202610272000"></script>
 </body>
 </html>

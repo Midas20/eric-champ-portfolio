@@ -18,6 +18,8 @@ const api = (path, opts = {}) => fetch(path, { cache: "no-store", ...opts, heade
 
 /* ---------- state ---------- */
 let draft = null, saved = "", section = "hero", jsonMode = false, versions = [], online = true;
+const filters = new Map();   // list filter text survives re-renders
+const v_ = (path) => getAt(path);
 const open = new Set();          // open item paths survive re-renders
 const isDirty = () => JSON.stringify(draft) !== saved;
 
@@ -36,20 +38,27 @@ const SECTIONS = {
   about: ["About", "Bio, values, status and the team graph."],
   contact: ["Contact", "What you are looking for, the 30-day plan and quick facts."],
   footer: ["Footer", ""],
+  focus: ["Focus", "Tailored versions of the page for one kind of role. Each preset gets its own link to send with an application, like /for/ai: it shows the matching projects first and a title that fits. These links are kept out of search engines."],
+  sections: ["Sections", "Put the sections in the order you want, hide any of them, and add your own. The top menu follows this order."],
+  customSections: ["Your sections", "Sections you add yourself: awards, speaking, open source, publications. Use a list for entries with an optional link, or paragraphs for text. Place them under Sections."],
+  gallery: ["Gallery", "Images of your work and your team. They are resized in your browser and stored with the site. The section appears once it has an image."],
 };
 const LABELS = {
   k: "Label", v: "Value", ci: "CI status", repo: "Source URL", link: "Live URL", linkToGithub: "Links to GitHub",
   sample: "Example data (shows an “example” tag on the page)", titleLine1: "Headline, line 1", titleLine2: "Headline, line 2",
   ctaPrimary: "Main button", ctaSecondary: "Second button", allProjectsUrl: "“See all projects” URL", lede: "Intro paragraph",
   moreLabel: "“See all” link text", certificationsLabel: "Certifications heading", lookingFor: "What I’m looking for",
+  home: "Home page shows", categories: "Project categories", stacks: "Also include stacks", pinned: "Pinned (shown first)", hidden: "Hidden from the site",
+  role: "Role word (for Focus titles)", photo: "Photo", src: "Image", caption: "Caption", alt: "Alt text (describes the image)", nav: "Menu label",
+  href: "Link (optional, filled in for you)", type: "Type", presets: "Presets", order: "Order", eyebrow: "Small label above the title",
 };
 const LONG = /^(lede|text|blurb|quote|description|outcome|context|problem|approach|result|status|now|what)$/;
-const INLINE_LISTS = [/^work\.projects\.\d+\.tags$/, /^skills\.groups\.\d+\.items$/, /^about\.team$/, /^pipeline\.stages$/];
+const INLINE_LISTS = [/^focus\.presets\.\d+\.stacks$/, /^work\.projects\.\d+\.tags$/, /^skills\.groups\.\d+\.items$/, /^about\.team$/, /^pipeline\.stages$/];
 const TEMPLATES = {
   "hero.stats": { value: "", suffix: "", label: "", linkToGithub: false },
   "hero.layers": { label: "", note: "" },
   "work.filters": { key: "", label: "" },
-  "work.projects": { title: "", blurb: "", outcome: "", metric: { value: "", label: "" }, tags: [], category: "fullstack", year: new Date().getFullYear(), link: "", repo: "", ci: "passing", tests: 0, coverage: "", sample: false },
+  "work.projects": { title: "", blurb: "", outcome: "", metric: { value: "", label: "" }, tags: [], category: "fullstack", year: new Date().getFullYear(), link: "", repo: "", ci: "passing", tests: 0, coverage: "", sample: false, pinned: false, hidden: false },
   "references.items": { quote: "", name: "", role: "", sample: false },
   "experience.items": { dates: "", title: "", org: "", text: "" },
   "experience.certifications": "",
@@ -59,7 +68,14 @@ const TEMPLATES = {
   "contact.lookingFor": { k: "", v: "" },
   "contact.plan": { when: "", what: "" },
   "contact.facts": { k: "", v: "" },
+  "contact.methods": { type: "email", label: "", value: "", href: "" },
+  "focus.presets": { name: "", slug: "", categories: [], stacks: [], title: "", eyebrow: "", lede: "" },
+  "customSections": { title: "", nav: "", eyebrow: "", lede: "", paragraphs: [], items: [] },
+  "customSections.*.items": { k: "", v: "", link: "" },
+  "customSections.*.paragraphs": "",
+  "gallery.items": { src: "", alt: "", caption: "", w: 0, h: 0 },
 };
+const METHOD_TYPES = ["email", "phone", "website", "github", "linkedin", "x", "calendar", "telegram", "whatsapp", "location", "other"];
 const OPTIONAL = {
   "work.projects.*": {
     caseStudy: { context: "", problem: "", approach: "", result: "" },
@@ -94,6 +110,18 @@ function prim(path, key, v) {
   const label = `<label class="lbl" for="${id}">${esc(human(key))}</label>`;
   if (typeof v === "boolean") return `<label class="check"><input id="${id}" type="checkbox" data-path="${path}" data-type="bool"${v ? " checked" : ""}>${esc(human(key))}</label>`;
   if (typeof v === "number") return `<div class="fld">${label}<input id="${id}" type="number" data-path="${path}" data-type="num" value="${esc(v)}"></div>`;
+  if (path === "focus.home") {
+    const opts = [["", "Everything (no focus)"], ...((draft.focus && draft.focus.presets) || []).map((p) => [presetSlug(p), p.name || presetSlug(p)])];
+    return `<div class="fld">${label}<select id="${id}" data-path="${path}" data-type="str">${opts.map(([v, t]) => `<option value="${esc(v)}"${v === v_(path) ? " selected" : ""}>${esc(t)}</option>`).join("")}</select><span class="hint">Applies a preset to your main address too.</span></div>`;
+  }
+  if (key === "type" && /^contact\.methods\.\d+\.type$/.test(path)) {
+    return `<div class="fld">${label}<select id="${id}" data-path="${path}" data-type="str">${METHOD_TYPES.map((t) => `<option value="${t}"${t === v ? " selected" : ""}>${t}</option>`).join("")}</select></div>`;
+  }
+  if ((key === "src" && /^gallery\.items\.\d+\.src$/.test(path)) || path === "about.photo") {
+    return `<div class="fld img-fld">${label}<div class="img-row">${v ? `<img src="${esc(v)}" alt="">` : '<span class="img-empty">No image</span>'}
+      <input id="${id}" type="text" data-path="${path}" data-type="str" value="${esc(v)}" placeholder="/img/… or https://…">
+      <label class="btn">Upload<input type="file" accept="image/*" data-upload="${path}" hidden></label></div></div>`;
+  }
   if (key === "category" && /^work\.projects\.\d+$/.test(path.split(".").slice(0, -1).join("."))) {
     const opts = (draft.work.filters || []).filter((f) => f.key !== "all").map((f) => `<option value="${esc(f.key)}"${f.key === v ? " selected" : ""}>${esc(f.label)}</option>`).join("");
     return `<div class="fld">${label}<select id="${id}" data-path="${path}" data-type="str">${opts}</select></div>`;
@@ -119,9 +147,11 @@ const ctl = (path, i, n) => `<span class="ctl">
   <button type="button" class="del" data-act="del" data-path="${path}" data-i="${i}" title="Remove">✕</button></span>`;
 
 function list(path, key, arr) {
+  if (/^focus\.presets\.\d+\.categories$/.test(path)) return catChecks(path, arr);
   if (INLINE_LISTS.some((re) => re.test(path))) return inlineList(path, key, arr);
   const objects = arr.length ? typeof arr[0] === "object" : typeof TEMPLATES[pattern(path)] === "object";
-  const head = `<div class="list-h"><span class="lbl">${esc(human(key))} · ${arr.length}</span></div>`;
+  const q = filters.get(path) || "";
+  const head = `<div class="list-h"><span class="lbl">${esc(human(key))} · ${arr.length}</span>${objects && arr.length > 6 ? `<input class="list-search" type="search" data-filter="${path}" value="${esc(q)}" placeholder="Filter ${esc(human(key).toLowerCase())}…" aria-label="Filter">` : ""}</div>`;
   const add = `<button type="button" class="btn add" data-act="add" data-path="${path}">+ Add ${esc(human(key).replace(/s$/, "").toLowerCase())}</button>`;
   if (!objects) {
     return `<div class="list">${head}${arr.map((v, i) => `<div class="prim-row">${
@@ -132,14 +162,18 @@ function list(path, key, arr) {
   }
   return `<div class="list">${head}${arr.map((it, i) => {
     const p = `${path}.${i}`;
-    return `<details class="item" data-open="${p}"${open.has(p) ? " open" : ""}>
-      <summary><span class="sum-n">${String(i + 1).padStart(2, "0")}</span><span class="sum-t">${esc(itemTitle(it, i))}</span>${it && it.sample ? '<span class="badge">example</span>' : ""}${ctl(path, i, arr.length)}</summary>
+    const hit = !q || JSON.stringify(it).toLowerCase().includes(q.toLowerCase());
+    const thumb = it && it.src ? `<img class="sum-img" src="${esc(it.src)}" alt="">` : "";
+    const badges = (it && it.sample ? '<span class="badge">example</span>' : "") + (it && it.pinned ? '<span class="badge acc">pinned</span>' : "") + (it && it.hidden ? '<span class="badge off">hidden</span>' : "");
+    return `<details class="item" data-open="${p}"${open.has(p) ? " open" : ""}${hit ? "" : " hidden"}>
+      <summary><span class="sum-n">${String(i + 1).padStart(2, "0")}</span>${thumb}<span class="sum-t">${esc(itemTitle(it, i))}</span>${badges}${ctl(path, i, arr.length)}</summary>
       <div class="item-body">${obj(p, it, true)}</div></details>`;
   }).join("")}${add}</div>`;
 }
 
 function obj(path, o, bare = false) {
-  const entries = Object.entries(o || {}).filter(([k]) => !k.startsWith("_"));
+  const gal = /^gallery\.items\.\d+$/.test(path);
+  const entries = Object.entries(o || {}).filter(([k]) => !k.startsWith("_") && !(gal && (k === "w" || k === "h")));
   const primEntries = entries.filter(([, v]) => v === null || typeof v !== "object");
   const nested = entries.filter(([, v]) => v !== null && typeof v === "object");
   const shortPrims = primEntries.filter(([k, v]) => typeof v !== "string" || (!LONG.test(k) && String(v).length < 60));
@@ -151,6 +185,7 @@ function obj(path, o, bare = false) {
     ? list(`${path}.${k}`, k, v)
     : `<fieldset class="obj"><legend>${esc(human(k))}</legend>${obj(`${path}.${k}`, v, true)}${optRemove(`${path}.${k}`, k)}</fieldset>`).join("");
   html += optAdd(path, o);
+  if (/^focus\.presets\.\d+$/.test(path)) html += presetInfo(path, o);
   return bare ? html : `<div class="grid">${html}</div>`;
 }
 
@@ -178,8 +213,9 @@ function renderPanel() {
   }
   const [title, lead] = SECTIONS[section] || [human(section), ""];
   const value = draft[section];
-  panel.innerHTML = `<h1>${esc(title)}</h1>${lead ? `<p class="lead">${esc(lead)}</p>` : ""}${
-    Array.isArray(value) ? list(section, section, value) : obj(section, value)}`;
+  const body = section === "sections" ? sectionsPanel()
+    : (section === "gallery" ? galleryDrop() : "") + (Array.isArray(value) ? list(section, section, value) : obj(section, value));
+  panel.innerHTML = `<h1>${esc(title)}</h1>${lead ? `<p class="lead">${esc(lead)}</p>` : ""}${body}`;
 }
 
 function renderSidebar() {
@@ -217,9 +253,18 @@ function toast(msg, bad = false) {
 
 /* ---------- edits ---------- */
 $("#panel").addEventListener("input", (e) => {
-  const el = e.target, path = el.dataset.path;
+  const el = e.target;
+  if (el.dataset.filter) {
+    filters.set(el.dataset.filter, el.value);
+    const q = el.value.toLowerCase(), arr = getAt(el.dataset.filter) || [];
+    $$(`details.item[data-open^="${el.dataset.filter}."]`).forEach((d) => { const it = getAt(d.dataset.open); d.hidden = !!q && !JSON.stringify(it).toLowerCase().includes(q); });
+    return;
+  }
+  const path = el.dataset.path;
   if (!path) return;
+  pvReload();
   const t = el.dataset.type;
+  if (t === "cat") { setAt(path, $$(`input[data-type="cat"][data-path="${path}"]`).filter((x) => x.checked).map((x) => x.value)); renderAll(); return; }
   const v = t === "bool" ? el.checked : t === "num" ? (el.value === "" ? 0 : Number(el.value)) : t === "csv" ? el.value.split(",").map((s) => s.trim()).filter(Boolean) : el.value;
   setAt(path, v);
   // keep the item's summary title in step with its fields
@@ -227,7 +272,41 @@ $("#panel").addEventListener("input", (e) => {
   if (item) { const it = getAt(item.dataset.open); const s = $(".sum-t", item); if (s) s.textContent = itemTitle(it, 0); }
   renderSidebar();
 });
-$("#panel").addEventListener("change", (e) => { if (e.target.type === "checkbox" || e.target.tagName === "SELECT") renderSidebar(); });
+$("#panel").addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.dataset.secShow) {
+    sectionOrder();
+    const h = new Set(draft.sections.hidden);
+    el.checked ? h.delete(el.dataset.secShow) : h.add(el.dataset.secShow);
+    draft.sections.hidden = [...h]; renderAll(); pvReload(); return;
+  }
+  if (el.type === "file" && el.files.length) {
+    const files = [...el.files]; el.value = "";
+    if (el.dataset.actFile === "gallery") {
+      draft.gallery = draft.gallery || { items: [] }; draft.gallery.items = draft.gallery.items || [];
+      return uploadMany(files, (img, f) => { draft.gallery.items.push({ src: img.src, alt: altFrom(f), caption: "", w: img.w, h: img.h }); pvReload(); });
+    }
+    if (el.dataset.upload) {
+      const target = el.dataset.upload;
+      return uploadMany(files.slice(0, 1), (img) => {
+        setAt(target, img.src);
+        const item = target.replace(/\.src$/, "");
+        if (item !== target) { const o = getAt(item); o.w = img.w; o.h = img.h; }
+        pvReload();
+      });
+    }
+  }
+  if (el.type === "checkbox" || el.tagName === "SELECT") { if (el.tagName === "SELECT") renderAll(); else renderSidebar(); }
+});
+$("#panel").addEventListener("dragover", (e) => { const d = e.target.closest(".drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
+$("#panel").addEventListener("dragleave", (e) => { const d = e.target.closest(".drop"); if (d) d.classList.remove("over"); });
+$("#panel").addEventListener("drop", (e) => {
+  const d = e.target.closest(".drop"); if (!d) return;
+  e.preventDefault(); d.classList.remove("over");
+  const files = [...e.dataTransfer.files].filter((f) => /^image\//.test(f.type));
+  draft.gallery = draft.gallery || { items: [] }; draft.gallery.items = draft.gallery.items || [];
+  uploadMany(files, (img, f) => { draft.gallery.items.push({ src: img.src, alt: altFrom(f), caption: "", w: img.w, h: img.h }); pvReload(); });
+});
 $("#panel").addEventListener("toggle", (e) => { const d = e.target; if (d.matches && d.matches("details.item")) d.open ? open.add(d.dataset.open) : open.delete(d.dataset.open); }, true);
 
 $("#panel").addEventListener("click", (e) => {
@@ -254,8 +333,16 @@ $("#panel").addEventListener("click", (e) => {
     try { draft = JSON.parse($("#jsonArea").value); jsonMode = false; toast("JSON applied. Preview, then publish."); }
     catch (err) { $("#jsonErr").textContent = `Not valid JSON: ${err.message}`; return; }
   } else if (act === "closejson") { jsonMode = false; }
+  else if (act === "copy") { navigator.clipboard.writeText(b.dataset.text).then(() => toast("Link copied."), () => toast(b.dataset.text)); return; }
+  else if (act === "previewpath") { preview(b.dataset.to); return; }
+  else if (act === "goto") { section = b.dataset.sec; }
+  else if (act === "sec-move") {
+    const order = sectionOrder(), k = order.indexOf(b.dataset.id), j = k + +b.dataset.d;
+    if (j < 0 || j >= order.length) return;
+    [order[k], order[j]] = [order[j], order[k]]; draft.sections.order = order;
+  }
   else return;
-  renderAll();
+  renderAll(); pvReload();
 });
 
 /* ---------- sidebar actions ---------- */
@@ -280,7 +367,7 @@ $("#btnDiscard").addEventListener("click", (e) => {
   if (!isDirty()) return toast("Nothing to discard.");
   const b = e.currentTarget;
   if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Click again to discard"; setTimeout(() => { delete b.dataset.confirm; b.textContent = "Discard unpublished changes"; }, 3000); return; }
-  draft = JSON.parse(saved); delete b.dataset.confirm; b.textContent = "Discard unpublished changes"; renderAll(); toast("Changes discarded.");
+  draft = JSON.parse(saved); delete b.dataset.confirm; b.textContent = "Discard unpublished changes"; renderAll(); pvReload(true); toast("Changes discarded.");
 });
 $("#btnExport").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(draft, null, 2)], { type: "application/json" });
@@ -324,6 +411,212 @@ $("#btnSave").addEventListener("click", publish);
 addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); publish(); } });
 addEventListener("beforeunload", (e) => { if (draft && isDirty()) { e.preventDefault(); e.returnValue = ""; } });
 
+/* ==================================================================
+   Focus, sections, images, page view, edit link, device
+   ================================================================== */
+const presetSlug = (p) => slugify(p.slug || p.name || "");
+function autoRole(cats) {
+  const F = draft.work.filters || [];
+  const words = [...new Set((cats || []).map((k) => { const f = F.find((x) => x.key === k); return f ? (f.role || f.label) : ""; }).filter(Boolean))].slice(0, 2);
+  if (!words.length) return draft.meta.role;
+  return `${words.length === 1 ? words[0] : `${words.slice(0, -1).join(", ")} & ${words[words.length - 1]}`} Engineer`;
+}
+const presetMatches = (p) => {
+  const cats = p.categories || [], tags = (p.stacks || []).map(slugify);
+  return (draft.work.projects || []).filter((x) => !x.hidden && (!(cats.length || tags.length) || cats.includes(x.category) || (x.tags || []).some((t) => tags.includes(slugify(t)))));
+};
+
+function catChecks(path, arr) {
+  const opts = (draft.work.filters || []).filter((f) => f.key !== "all");
+  return `<div class="fld"><span class="lbl">${esc(human("categories"))}</span><div class="checks">${opts.map((f) =>
+    `<label class="check"><input type="checkbox" data-path="${path}" data-type="cat" value="${esc(f.key)}"${arr.includes(f.key) ? " checked" : ""}>${esc(f.label)}</label>`).join("")}</div>
+    <span class="hint">Projects in these categories are shown. Add stacks below to include more.</span></div>`;
+}
+
+function presetInfo(path, p) {
+  const slug = presetSlug(p), url = `${location.origin}/for/${slug}`, n = presetMatches(p).length;
+  return `<div class="preset-info">
+    <div><span class="lbl">Link to send</span><code>${esc(url)}</code></div>
+    <div><span class="lbl">Title shown</span><span>${esc((p.title && p.title.trim()) || autoRole(p.categories))}</span></div>
+    <div><span class="lbl">Projects shown</span><span>${n}</span></div>
+    <div class="opt"><button type="button" class="btn" data-act="copy" data-text="${esc(url)}">Copy link</button>
+      <button type="button" class="btn" data-act="previewpath" data-to="/for/${esc(slug)}">Preview</button></div></div>`;
+}
+
+const BUILTIN_SECTIONS = { case: "Case study", work: "Work", references: "References", experience: "Experience", skills: "Skills", gallery: "Gallery", about: "About", contact: "Contact" };
+const SECTION_NOTE = { case: "shows when a project has a case study", references: "shows when there are references", gallery: "shows when it has an image" };
+const customKey = (c) => `x-${slugify(c.id || c.title || "section")}`;
+function sectionOrder() {
+  const L = draft.sections || (draft.sections = { order: [], hidden: [] });
+  L.order = L.order || []; L.hidden = L.hidden || [];
+  const all = [...Object.keys(BUILTIN_SECTIONS), ...(draft.customSections || []).filter((c) => c && (c.title || c.id)).map(customKey)];
+  const order = [...L.order.filter((id) => all.includes(id)), ...all.filter((id) => !L.order.includes(id))];
+  if (!L.order.includes("contact")) { order.splice(order.indexOf("contact"), 1); order.push("contact"); }
+  return order;
+}
+function sectionsPanel() {
+  const order = sectionOrder(), hidden = new Set(draft.sections.hidden);
+  const name = (id) => BUILTIN_SECTIONS[id] || ((draft.customSections || []).find((c) => customKey(c) === id) || {}).title || id;
+  return `<div class="sec-list">${order.map((id, i) => `
+    <div class="sec-row${hidden.has(id) ? " off" : ""}">
+      <span class="sum-n">${String(i + 1).padStart(2, "0")}</span>
+      <span class="sec-name">${esc(name(id))}${id.startsWith("x-") ? ' <span class="badge">yours</span>' : ""}${SECTION_NOTE[id] ? `<span class="hint"> · ${SECTION_NOTE[id]}</span>` : ""}</span>
+      <label class="check"><input type="checkbox" data-sec-show="${id}"${hidden.has(id) ? "" : " checked"}>Shown</label>
+      <span class="ctl"><button type="button" data-act="sec-move" data-id="${id}" data-d="-1"${i === 0 ? " disabled" : ""} title="Move up">↑</button><button type="button" data-act="sec-move" data-id="${id}" data-d="1"${i === order.length - 1 ? " disabled" : ""} title="Move down">↓</button></span>
+    </div>`).join("")}</div>
+    <p class="hint">The hero and the pipeline band always open the page. Menu labels are under Navigation, and for your own sections under Your sections.</p>
+    <div class="opt"><button type="button" class="btn" data-act="goto" data-sec="customSections">+ Add your own section</button></div>`;
+}
+
+/* images are resized in the browser (longest side 1600 px, WebP) before upload */
+async function uploadImage(file) {
+  if (!/^image\//.test(file.type)) throw new Error(`${file.name} is not an image.`);
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  c.getContext("2d").drawImage(bmp, 0, 0, w, h);
+  let blob = await new Promise((r) => c.toBlob(r, "image/webp", 0.85));
+  if (!blob || blob.type !== "image/webp") blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.86));
+  const r = await fetch("/api/img", { method: "POST", headers: { "content-type": blob.type, authorization: `Bearer ${KEY}` }, body: blob });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `Upload failed (${r.status}).`);
+  return { src: j.url, w, h };
+}
+async function uploadMany(files, onEach) {
+  let n = 0;
+  for (const f of files) {
+    try { toast(`Uploading ${f.name}…`); onEach(await uploadImage(f), f); n++; }
+    catch (err) { toast(err.message, true); }
+  }
+  if (n) { renderAll(); toast(`${n} image${n > 1 ? "s" : ""} uploaded. Publish to show ${n > 1 ? "them" : "it"} on the site.`); }
+}
+const altFrom = (f) => f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
+function galleryDrop() {
+  return `<label class="drop" id="galleryDrop"><input type="file" accept="image/*" multiple data-act-file="gallery" hidden>
+    <strong>Drop images here, or click to choose</strong><span class="hint">Resized to 1600 px and stored with the site. Add a caption and alt text after upload.</span></label>`;
+}
+
+/* ---------- page view: the real page, editable in place, beside the form ---------- */
+let pageView = false, pvTimer = 0;
+const frame = () => $("#pvFrame");
+const pvSrc = () => { const f = $("#pvFocus").value; return `${f ? `/for/${encodeURIComponent(f)}` : "/"}?draft=1&inline=1`; };
+function writeDraft() { try { localStorage.setItem("site-draft", JSON.stringify(draft)); return true; } catch (e) { return false; } }
+function pvFill() {
+  const sel = $("#pvFocus"), cur = sel.value;
+  sel.innerHTML = `<option value="">Home page</option>` + ((draft.focus && draft.focus.presets) || []).map((p) => `<option value="${esc(presetSlug(p))}">For: ${esc(p.name || presetSlug(p))}</option>`).join("");
+  sel.value = [...sel.options].some((o) => o.value === cur) ? cur : "";
+}
+function pvReload(now = false) {
+  if (!pageView) return;
+  clearTimeout(pvTimer);
+  pvTimer = setTimeout(() => { if (!writeDraft()) return toast("The page view needs browser storage, which is blocked here.", true); frame().src = pvSrc(); }, now ? 0 : 700);
+}
+function setPageView(on) {
+  pageView = on;
+  document.body.classList.toggle("split", on);
+  $("#pageView").hidden = !on;
+  $("#btnPage").setAttribute("aria-pressed", String(on));
+  if (on) { pvFill(); pvReload(true); }
+}
+$("#btnPage").addEventListener("click", () => setPageView(!pageView));
+$("#pvFocus").addEventListener("change", () => pvReload(true));
+$("#pvReload").addEventListener("click", () => pvReload(true));
+$("#pvOpen").addEventListener("click", () => { writeDraft(); window.open(pvSrc().replace("&inline=1", ""), "_blank", "noopener"); });
+
+function revealField(path) {
+  // open the right section and the items above the field, then point at it
+  const top = path.split(".")[0];
+  if (top !== section || jsonMode) { section = top; jsonMode = false; }
+  const parts = path.split(".");
+  for (let i = 1; i < parts.length; i++) if (/^\d+$/.test(parts[i])) open.add(parts.slice(0, i + 1).join("."));
+  renderAll();
+  const el = $(`#panel [data-path="${CSS.escape(path)}"]`);
+  if (!el) return;
+  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+addEventListener("message", (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.source !== "portfolio-page") return;
+  const { type, path, value } = e.data;
+  if (type === "edit" && typeof path === "string" && getAt(path.split(".").slice(0, -1).join(".")) != null) {
+    setAt(path, value);
+    const el = $(`#panel [data-path="${CSS.escape(path)}"]`);
+    if (el && document.activeElement !== el) el.value = value;
+    writeDraft(); renderSidebar();
+  } else if (type === "select" && typeof path === "string") {
+    revealField(path);
+  }
+});
+$("#panel").addEventListener("focusin", (e) => {
+  const path = e.target.dataset && e.target.dataset.path;
+  if (pageView && path && frame().contentWindow) frame().contentWindow.postMessage({ source: "portfolio-editor", type: "reveal", path }, location.origin);
+});
+
+/* ---------- edit link: change it, and remember this device ---------- */
+function showLink(url) {
+  const d = document.createElement("dialog");
+  d.className = "linkbox";
+  d.innerHTML = `<h2>Your new edit link</h2><p class="side-note">The old link stopped working just now. Save this one somewhere safe, like a password manager. It is the only way into the editor.</p>
+    <code>${esc(url)}</code><div class="opt"><button class="btn primary" type="button" data-copy>Copy link</button><button class="btn" type="button" data-close>Done</button></div>`;
+  document.body.appendChild(d);
+  d.addEventListener("click", async (e) => {
+    if (e.target.closest("[data-copy]")) { try { await navigator.clipboard.writeText(url); e.target.textContent = "Copied"; } catch (err) { e.target.textContent = "Select and copy"; } }
+    if (e.target.closest("[data-close]")) { d.close(); d.remove(); }
+  });
+  d.showModal();
+}
+$("#btnKey").addEventListener("click", async (e) => {
+  const b = e.currentTarget;
+  if (!online) return toast("Changing the link needs the Cloudflare server.", true);
+  if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Click again: the current link stops working"; setTimeout(() => { delete b.dataset.confirm; b.textContent = "Change edit link"; }, 4000); return; }
+  delete b.dataset.confirm; b.textContent = "Change edit link";
+  const r = await api("/api/key", { method: "POST" });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.key) return toast(j.error || "The link could not be changed.", true);
+  KEY = j.key;
+  try { sessionStorage.setItem("edit-key", KEY); } catch (err) {}
+  history.replaceState(null, "", `/edit/${KEY}`);
+  rememberDevice();
+  showLink(`${location.origin}/edit/${KEY}`);
+});
+
+function rememberDevice() {
+  try { if (localStorage.getItem("editor-remember") !== "0") localStorage.setItem("editor-url", `/edit/${KEY}`); } catch (e) {}
+  renderDevice();
+}
+function renderDevice() {
+  let on = false;
+  try { on = !!localStorage.getItem("editor-url"); } catch (e) {}
+  $("#device").innerHTML = on
+    ? `<p class="side-note">This device shows a small Edit button on your site, and Ctrl+Shift+E opens the editor. Visitors never see it.</p><button class="link" type="button" data-device="forget">Forget this device</button>`
+    : `<p class="side-note">This device does not show the Edit shortcut on your site.</p><button class="link" type="button" data-device="remember">Remember this device</button>`;
+}
+$("#device").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-device]"); if (!b) return;
+  try {
+    if (b.dataset.device === "forget") { localStorage.removeItem("editor-url"); localStorage.setItem("editor-remember", "0"); }
+    else { localStorage.removeItem("editor-remember"); localStorage.setItem("editor-url", `/edit/${KEY}`); }
+  } catch (err) {}
+  renderDevice();
+});
+
+/* ---------- unused images ---------- */
+$("#btnImages").addEventListener("click", async (e) => {
+  const b = e.currentTarget;
+  if (!online) return toast("Image clean-up needs the Cloudflare server.", true);
+  const r = await api("/api/img");
+  if (!r.ok) return toast("The image list could not be loaded.", true);
+  const imgs = await r.json();
+  const used = new Set([...`${JSON.stringify(draft)}${saved}`.matchAll(/\/img\/([a-f0-9]{16,64})/g)].map((m) => m[1]));
+  const unused = imgs.filter((x) => !used.has(x.id));
+  if (!unused.length) return toast(`${imgs.length} image${imgs.length === 1 ? "" : "s"} stored, all in use.`);
+  if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = `Click again to delete ${unused.length} unused`; setTimeout(() => { delete b.dataset.confirm; b.textContent = "Clean up unused images"; }, 4000); return; }
+  delete b.dataset.confirm; b.textContent = "Clean up unused images";
+  for (const x of unused) await api(`/api/img/${x.id}`, { method: "DELETE" });
+  toast(`Deleted ${unused.length} unused image${unused.length > 1 ? "s" : ""}. Older versions that used them will show them missing.`);
+});
+
 /* ---------- boot ---------- */
 async function loadVersions() {
   try {
@@ -358,6 +651,7 @@ async function boot() {
   draft = doc; saved = JSON.stringify(doc);
   if (!draft[section]) section = Object.keys(draft).find((k) => !k.startsWith("_"));
   renderAll();
+  if (access === "ok") rememberDevice(); else renderDevice();
   if (access === "offline") toast("Local mode: you can edit and preview, but publishing needs the Cloudflare server.", true);
 }
 boot();
