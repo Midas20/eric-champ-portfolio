@@ -177,11 +177,39 @@ function layoutSections(S) {
   $("#navLinks").innerHTML = order.map((id) => {
     const sec = document.getElementById(id), l = label(id);
     if (!l || sec.hidden) return "";
-    return `<a href="/#${id}" data-path="${l[1]}">${esc(l[0])}</a>`;
+    return `<a href="/#${id}">${icon(ICON[id] ? id : "dot", "nl-ico")}<span class="nl-t" data-path="${l[1]}">${esc(l[0])}</span></a>`;
   }).join("");
 }
 
 /* ---------- contact methods ---------- */
+/* line icons (24px grid, stroke) */
+const ICON = {
+  work: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  experience: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  skills: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.7 1.8L21.5 18l-1.8.7L19 20.5l-.7-1.8L16.5 18l1.8-.7z"/>',
+  about: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  contact: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  references: '<path d="M7 7h4v4c0 3-2 5-4 5M15 7h4v4c0 3-2 5-4 5"/>',
+  gallery: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
+  case: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  dot: '<circle cx="12" cy="12" r="3"/>',
+  github: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
+  linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>',
+  telegram: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  whatsapp: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.9.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+  website: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  x: '<path d="M4 4l16 16M20 4L4 20"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  code: '<path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/>',
+  layout: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+  server: '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
+  database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  mobile: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+  layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+};
+const icon = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k] || ICON.dot}</svg>`;
+
 const METHOD_ICON = { email: "@", phone: "☏", github: "⌥", linkedin: "in", x: "𝕏", website: "↗", calendar: "◷", location: "⌖", telegram: "➤", whatsapp: "✆", other: "•" };
 function methodHref(m) {
   const v = String(m.value || "").trim();
@@ -379,11 +407,31 @@ function render(S, route, stacks) {
 
   // skills, each item links to its stack page
   const active = route && route.slug;
-  $("#skillsGrid").innerHTML = (S.skills.groups || []).map((g, i) => `
-    <div class="skill-group reveal" style="--i:${i}">
-      <h3 data-path="skills.groups.${i}.name">${esc(g.name)}</h3>
-      <ul>${(g.items || []).map((t) => { const s = slugify(t); return `<li><a class="stack-link${s === active ? " on" : ""}" href="/stack/${s}">${esc(t)}</a></li>`; }).join("")}</ul>
-    </div>`).join("");
+  // levels are calculated, never typed in: one dot for being listed, one more per project tagged with it
+  // and per role whose description names it, up to five
+  const keysOf = (t) => String(t).split("/").map((x) => x.toLowerCase().replace(/\s+\d+(\.\d+)*$/, "").trim()).filter(Boolean);
+  const roleText = (S.experience.items || []).map((it) => `${it.title || ""} ${it.org || ""} ${it.text || ""}`.toLowerCase());
+  const reOf = (k) => new RegExp(`(^|[^a-z0-9+#.])${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9+#]|$)`);
+  const evidence = (t) => {
+    const keys = keysOf(t);
+    const ps = (S.work.projects || []).filter((p) => !p.hidden && (p.tags || []).some((tag) => keysOf(tag).some((k) => keys.includes(k))));
+    const roles = roleText.filter((txt) => keys.some((k) => reOf(k).test(txt))).length;
+    return { level: Math.min(5, 1 + ps.length + roles), ps };
+  };
+  const groupIcon = (n) => { n = String(n).toLowerCase(); return /lang/.test(n) ? "code" : /front|ui|web/.test(n) ? "layout" : /back|api|server/.test(n) ? "server" : /\bai\b|ml|machine|llm/.test(n) ? "skills" : /data|infra|db|cloud|devops/.test(n) ? "database" : /mobile|ios|android/.test(n) ? "mobile" : "layers"; };
+  $("#skillsGrid").innerHTML = (S.skills.groups || []).map((g, i) => {
+    const items = (g.items || []).map((t) => ({ t, ...evidence(t) }));
+    const used = [...new Set(items.flatMap((x) => x.ps.map((p) => p.title)))];
+    const total = (S.work.projects || []).filter((p) => !p.hidden).length, depth = total ? used.length / total : 0;   // share of the projects that use this group
+    return `
+    <div class="skill-group scard reveal" style="--i:${i};--c:var(--p${(i % 6) === 2 ? 4 : (i % 6) === 3 ? 3 : (i % 6) + 1})">
+      <div class="sc-head"><span class="sc-ico">${icon(groupIcon(g.name))}</span><h3 data-path="skills.groups.${i}.name">${esc(g.name)}</h3></div>
+      <div class="sc-depth" title="Dots: one for being listed, one more per project and role here that uses it"><span>In projects</span><b>${used.length} of ${total}</b></div>
+      <div class="sc-bar" aria-hidden="true"><i style="--v:${depth.toFixed(3)}"></i></div>
+      <ul class="sc-items">${items.map((x, j) => { const s = slugify(x.t); return `<li style="--j:${j}"><a class="stack-link${s === active ? " on" : ""}" href="/stack/${s}">${esc(x.t)}</a><span class="sc-dots" role="img" aria-label="${x.level} of 5">${[1, 2, 3, 4, 5].map((d) => `<i${d <= x.level ? ' class="on"' : ""}></i>`).join("")}</span></li>`; }).join("")}</ul>
+      <p class="sc-note">${used.length ? `Used in ${used.length} project${used.length === 1 ? "" : "s"}: ${esc(used.slice(0, 3).join(", "))}${used.length > 3 ? "…" : ""}` : "Part of the toolkit; no listed project uses these yet."}</p>
+    </div>`;
+  }).join("");
 
   // gallery
   const G = (S.gallery && S.gallery.items) || [];
@@ -716,8 +764,32 @@ function start(S, route, stacks) {
       const c = en.target; c.classList.add("in"); cardIO.unobserve(c);
       setTimeout(() => c.classList.add("settled"), 900);   // hover reacts at once after the entrance
     }), { threshold: 0.1, rootMargin: "0px 0px -4% 0px" });
+    // a cover drawn from the project itself: a browser frame, its result and a small chart that moves the way the result does
+    const hash = (s) => [...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
+    const cover = (p) => {
+      let seed = hash(p.title);
+      const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
+      const val = String((p.metric && p.metric.value) || "").trim(), down = /^[-−]/.test(val);
+      const pts = Array.from({ length: 9 }, (_, k) => { const t = k / 8; return [214 + t * 166, 150 - (down ? 1 - t : t) * 70 + (rnd() - 0.5) * 22]; });
+      const line = pts.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+      const kind = hash(p.category || p.title) % 2;
+      const chart = kind ? `<path class="cv-area" d="${line} L380 176 L214 176 Z"/><path class="cv-line" d="${line}"/>${pts.map(([x, y], k) => k % 2 ? "" : `<circle class="cv-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6"/>`).join("")}`
+        : pts.map(([x, y], k) => `<rect class="cv-bar${k === (down ? 0 : 8) ? " hi" : ""}" x="${(x - 6).toFixed(1)}" y="${y.toFixed(1)}" width="12" height="${(176 - y).toFixed(1)}" rx="2"/>`).join("");
+      const lines = [0, 1, 2, 3].map((k) => `<rect class="cv-sk" x="22" y="${132 + k * 12}" width="${(70 + rnd() * 90).toFixed(0)}" height="5" rx="2.5"/>`).join("");
+      const slug = slugify(p.title) || "project";
+      return `<svg class="pc-cover" viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(p.title)}">
+        <defs><pattern id="g${p._i}" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" class="cv-grid"/></pattern></defs>
+        <rect width="400" height="210" class="cv-bg"/><rect width="400" height="210" fill="url(#g${p._i})"/>
+        <rect x="12" y="14" width="376" height="184" rx="8" class="cv-win"/><path d="M12 36H388" class="cv-rule"/>
+        <circle cx="26" cy="25" r="3" class="cv-dot"/><circle cx="37" cy="25" r="3" class="cv-dot"/><circle cx="48" cy="25" r="3" class="cv-dot"/>
+        <rect x="140" y="19" width="120" height="12" rx="6" class="cv-url"/><text x="200" y="28" text-anchor="middle" class="cv-url-t">${esc(slug.slice(0, 18))}.dev</text>
+        <text x="22" y="82" class="cv-big">${esc(val || "✓")}</text><text x="22" y="104" class="cv-small">${esc(((p.metric && p.metric.label) || p.title).slice(0, 34))}</text>
+        ${lines}${chart}</svg>`;
+    };
+    const media = (p) => `<div class="pc-media">${p.image ? `<img src="${esc(safeUrl(p.image))}" alt="" loading="lazy" decoding="async">` : cover(p)}</div>`;
     const cardHTML = (p, i, wide) => `
       <article class="pcard${wide ? " wide" : ""}" style="--i:${i % 6};--c:${colorOf(p.category)}">
+        ${media(p)}
         <div class="pc-top">${labelOf[p.category] ? `<span class="pc-cat"><i></i>${esc(labelOf[p.category])}</span>` : ""}<span class="pc-year">${esc(p.year)}</span>${p.sample ? '<span class="sample-tag">Example</span>' : ""}</div>
         <div class="pc-body">
           <div class="pc-text"><h3 ${P(p, "title")}>${esc(p.title)}</h3><p class="pc-blurb" ${P(p, "blurb")}>${esc(p.blurb)}</p></div>
@@ -1280,6 +1352,23 @@ function start(S, route, stacks) {
     } else hero();
   })();
 
+  /* ---------- social rail: the ways to reach you, fixed at the edge ---------- */
+  (function socialRail() {
+    if (INLINE) return;
+    const links = [];
+    const add = (type, href, label) => { if (href && !links.some((l) => l.href === href)) links.push({ type, href, label }); };
+    const C = S.config || {}, email = C.email;
+    if (email) add("contact", `mailto:${email}`, "Email");
+    if (C.github) add("github", safeUrl(C.github), "GitHub");
+    if (C.linkedin) add("linkedin", safeUrl(C.linkedin), "LinkedIn");
+    ((S.contact && S.contact.methods) || []).forEach((mm) => { const href = methodHref(mm); if (href && ICON[mm.type]) add(mm.type, href, mm.label || mm.type); });
+    if (!links.length) return;
+    const rail = document.createElement("nav");
+    rail.className = "social-rail"; rail.setAttribute("aria-label", "Contact links");
+    rail.innerHTML = links.slice(0, 6).map((l) => `<a href="${esc(l.href)}"${/^https?:/.test(l.href) ? ' target="_blank" rel="noopener"' : ""} aria-label="${esc(l.label)}" title="${esc(l.label)}">${icon(l.type)}</a>`).join("");
+    document.body.appendChild(rail);
+  })();
+
   /* ---------- text under the pointer ---------- */
   (function hoverText() {
     if (INLINE || reduceMotion || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
@@ -1315,7 +1404,7 @@ function start(S, route, stacks) {
       el.dataset.roll = "1"; (el.tagName === "A" ? el : el.closest("a, button")).setAttribute("aria-label", text);   // the link keeps its name
       el.innerHTML = `<span class="roll" aria-hidden="true">${[...text].map((ch, k) => `<span style="--k:${k}">${esc(ch)}</span>`).join("")}</span>`;
     };
-    $$(".nav-links a, .nav-cta, .btn > span[data-t], .btn-ghost[data-t]").forEach(roll);
+    $$(".nav-links .nl-t, .nav-cta, .btn > span[data-t], .btn-ghost[data-t]").forEach(roll);
 
     // small mono labels decode again when pointed at
     const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/<>_=+#";
@@ -1332,7 +1421,7 @@ function start(S, route, stacks) {
       })(begin);
     };
     document.addEventListener("pointerover", (e) => {
-      const el = e.target.closest(".section-head .eyebrow, .case-col .eyebrow, .skill-group h3, .side-block .eyebrow, .pipe-count .eyebrow");
+      const el = e.target.closest(".section-head .eyebrow, .case-col .eyebrow, .side-block .eyebrow, .pipe-count .eyebrow");
       if (el && !el.contains(e.relatedTarget)) decode(el);
     });
   })();

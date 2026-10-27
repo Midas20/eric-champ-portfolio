@@ -58,7 +58,7 @@ const TEMPLATES = {
   "hero.stats": { value: "", suffix: "", label: "", linkToGithub: false },
   "hero.layers": { label: "", note: "" },
   "work.filters": { key: "", label: "" },
-  "work.projects": { title: "", blurb: "", outcome: "", metric: { value: "", label: "" }, tags: [], category: "fullstack", year: new Date().getFullYear(), link: "", repo: "", ci: "passing", tests: 0, coverage: "", sample: false, pinned: false, hidden: false },
+  "work.projects": { title: "", blurb: "", image: "", outcome: "", metric: { value: "", label: "" }, tags: [], category: "fullstack", year: new Date().getFullYear(), link: "", repo: "", ci: "passing", tests: 0, coverage: "", sample: false, pinned: false, hidden: false },
   "references.items": { quote: "", name: "", role: "", sample: false },
   "experience.items": { dates: "", title: "", org: "", text: "" },
   "experience.certifications": "",
@@ -117,7 +117,7 @@ function prim(path, key, v) {
   if (key === "type" && /^contact\.methods\.\d+\.type$/.test(path)) {
     return `<div class="fld">${label}<select id="${id}" data-path="${path}" data-type="str">${METHOD_TYPES.map((t) => `<option value="${t}"${t === v ? " selected" : ""}>${t}</option>`).join("")}</select></div>`;
   }
-  if ((key === "src" && /^gallery\.items\.\d+\.src$/.test(path)) || path === "about.photo") {
+  if ((key === "src" && /^gallery\.items\.\d+\.src$/.test(path)) || path === "about.photo" || /^work\.projects\.\d+\.image$/.test(path)) {
     return `<div class="fld img-fld">${label}<div class="img-row">${v ? `<img src="${esc(v)}" alt="">` : '<span class="img-empty">No image</span>'}
       <input id="${id}" type="text" data-path="${path}" data-type="str" value="${esc(v)}" placeholder="/img/… or https://…">
       <label class="btn">Upload<input type="file" accept="image/*" data-upload="${path}" hidden></label></div></div>`;

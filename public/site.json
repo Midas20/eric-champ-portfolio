@@ -147,6 +147,7 @@
       {
         "title": "Docstream RAG",
         "blurb": "Retrieval-augmented answers over 40k support documents. Hybrid BM25 + pgvector search, reranking, and citations that link back to the exact paragraph.",
+        "image": "",
         "outcome": "Support team answers tickets from one screen instead of searching three wikis.",
         "metric": {
           "value": "-38%",
@@ -178,6 +179,7 @@
       {
         "title": "Riskgrade",
         "blurb": "Gradient-boosted credit risk scoring with calibrated probabilities, SHAP explanations per decision and a reviewer UI for overrides.",
+        "image": "",
         "outcome": "Risk reviewers see why a score was given, so overrides are rare and auditable.",
         "metric": {
           "value": "-62%",
@@ -203,6 +205,7 @@
       {
         "title": "Ledgerline",
         "blurb": "Order-matching engine in Go with a price-time priority book, deterministic replay from a Kafka log and sub-millisecond p99 under load tests.",
+        "image": "",
         "outcome": "Replayable log means the team can reproduce any incident instead of guessing.",
         "metric": {
           "value": "0.8 ms",
@@ -228,6 +231,7 @@
       {
         "title": "Fareframe",
         "blurb": "Airline revenue management: EMSR-b seat allocation across fare classes with demand forecasting and a what-if dashboard for analysts.",
+        "image": "",
         "outcome": "Analysts test pricing scenarios themselves, without waiting on engineering.",
         "metric": {
           "value": "2 days → 20 min",
@@ -253,6 +257,7 @@
       {
         "title": "Crossmarket",
         "blurb": "Cross-border checkout with live FX, landed-cost duties per HS code, multi-currency settlement and a Stripe-backed payment flow.",
+        "image": "",
         "outcome": "Customers see the full landed price up front, cutting refund requests after delivery.",
         "metric": {
           "value": "-31%",
@@ -278,6 +283,7 @@
       {
         "title": "Pulsewire",
         "blurb": "Rust WebSocket telemetry fan-out on Axum and Tokio. Backpressure-aware, 50k concurrent clients on one node, Protocol Buffers on the wire.",
+        "image": "",
         "outcome": "One node replaced a four-node cluster, with the ops runbook handed to the platform team.",
         "metric": {
           "value": "4 → 1",
@@ -303,6 +309,7 @@
       {
         "title": "Gitgraph",
         "blurb": "A CLI and web view that renders any repository's history as a readable release story: conventional commits, branches and annotated tags.",
+        "image": "",
         "outcome": "New engineers read the release history in minutes instead of asking around.",
         "metric": {
           "value": "1.2k",
@@ -327,6 +334,7 @@
       {
         "title": "Cadence",
         "blurb": "Native iOS habit tracker in SwiftUI with on-device streak modelling, widgets and CloudKit sync. No account required.",
+        "image": "",
         "outcome": "Shipped to the App Store with a test suite the next maintainer can rely on.",
         "metric": {
           "value": "4.8",
@@ -351,6 +359,7 @@
       {
         "title": "Tidewatch",
         "blurb": "Interactive dataviz of coastal tide gauges: 30 years of hourly readings rendered with three.js and a custom time-scrubber.",
+        "image": "",
         "outcome": "Researchers explore three decades of data in the browser, no download required.",
         "metric": {
           "value": "260k",
