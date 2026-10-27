@@ -280,6 +280,14 @@ async function loadSite() {
   return null;
 }
 
+/* the loading screen in index.html leaves once there is something to show */
+function loaded() {
+  const l = document.getElementById("loader");
+  if (!l || l.classList.contains("done")) return;
+  l.classList.add("done");
+  setTimeout(() => l.remove(), 500);
+}
+
 /* ================================================================== */
 /* first visit: a change runs the pipeline to shipped, then the page opens */
 /* ================================================================== */
@@ -295,6 +303,7 @@ function intro(S, role) {
     <ol class="i-track" style="--n:${stages.length}">${stages.map((s, i) => `<li style="--i:${i}"><i></i><span>${esc(s)}</span></li>`).join("")}<b class="i-fill"></b></ol>
     <p class="i-name"><strong>${esc(S.meta.name)}</strong><span>${esc(role || S.meta.role)}</span></p></div>`;
   document.body.appendChild(el);
+  loaded();   // the intro takes over from the loading screen
   const skip = ["click", "keydown", "wheel", "touchstart"];
   let done = false;
   const finish = () => {
@@ -1412,7 +1421,7 @@ function start(S, route, stacks) {
 /* ================================================================== */
 (async function boot() {
   const raw = await loadSite();
-  if (!raw) { document.body.insertAdjacentHTML("afterbegin", '<p style="padding:2rem">Could not load site data.</p>'); return; }
+  if (!raw) { loaded(); document.body.insertAdjacentHTML("afterbegin", '<p style="padding:2rem">Could not load site data.</p>'); return; }
   const route = stackRoute();
   const focus = route ? "" : (focusRoute() ?? ((raw.focus && raw.focus.home) || ""));
   const preset = findPreset(raw, focus);
@@ -1427,4 +1436,5 @@ function start(S, route, stacks) {
   render(S, route, stacks);
   start(S, route, stacks);
   if (INLINE) enableInline(raw, S); else ownerShortcut();
+  requestAnimationFrame(loaded);
 })();

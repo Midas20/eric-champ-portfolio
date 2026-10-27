@@ -449,7 +449,7 @@ main { position: relative; z-index: 1; }
 .bg-graph text.g-goal-t.on { fill: var(--ok); }
 
 /* ---------- first visit: pipeline intro ---------- */
-html.intro body > :not(.intro-screen) { visibility: hidden; }
+html.intro body > :not(.intro-screen):not(#loader) { visibility: hidden; }
 html.intro .hero, html.intro .hero * { animation-play-state: paused !important; }
 .intro-screen {
   position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg);
