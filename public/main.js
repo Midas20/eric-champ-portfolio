@@ -769,7 +769,7 @@ function start(S, route, stacks) {
     // a cover drawn from the project itself: a browser frame, its result and a small chart that moves the way the result does
     const hash = (s) => [...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
     const cover = (p, wide) => {
-      const VW = wide ? 1000 : 400, x0 = wide ? 450 : 214, x1 = VW - 20;   // the wide card gets a wider drawing, not a bigger one
+      const VW = wide ? 1000 : 400, x0 = wide ? 450 : 214, x1 = VW - 30;   // the wide card gets a wider drawing, not a bigger one
       let seed = hash(p.title);
       const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
       const val = String((p.metric && p.metric.value) || "").trim(), down = /^[-−]/.test(val);
@@ -780,7 +780,7 @@ function start(S, route, stacks) {
         : pts.map(([x, y], k) => `<rect class="cv-bar${k === (down ? 0 : 8) ? " hi" : ""}" x="${(x - 6).toFixed(1)}" y="${y.toFixed(1)}" width="12" height="${(176 - y).toFixed(1)}" rx="2"/>`).join("");
       const lines = [0, 1, 2, 3].map((k) => `<rect class="cv-sk" x="22" y="${132 + k * 12}" width="${(70 + rnd() * 90).toFixed(0)}" height="5" rx="2.5"/>`).join("");
       const slug = slugify(p.title) || "project";
-      return `<svg class="pc-cover" viewBox="0 0 ${VW} 210" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(p.title)}">
+      return `<svg class="pc-cover" viewBox="0 0 ${VW} 210" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(p.title)}">
         <defs><pattern id="g${p._i}" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" class="cv-grid"/></pattern></defs>
         <rect width="${VW}" height="210" class="cv-bg"/><rect width="${VW}" height="210" fill="url(#g${p._i})"/>
         <rect x="12" y="14" width="${VW - 24}" height="184" rx="8" class="cv-win"/><path d="M12 36H${VW - 12}" class="cv-rule"/>
