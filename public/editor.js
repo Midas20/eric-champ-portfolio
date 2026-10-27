@@ -26,7 +26,7 @@ const SECTIONS = {
   meta: ["Name & search", "Your name, initials and the title and description search engines and link previews show."],
   config: ["Links & email", "Email, GitHub and LinkedIn are used everywhere on the page. Leave LinkedIn empty to hide it."],
   nav: ["Navigation", "Labels in the top bar."],
-  hero: ["Hero", "The first screen: headline, intro, buttons, stats and the layer stack."],
+  hero: ["Hero", "The first screen: headline, intro, buttons, stats and the layer stack. Numbers can be calculated for you: write {repos} (your own GitHub repositories, live), {years} (from your experience dates), {projects}, {stacks} or {layers} in a stat value or any text."],
   pipeline: ["Pipeline band", "The commit-to-production strip under the hero."],
   caseStudy: ["Case study", "The featured project is the first project that has a case study. Add one under Projects."],
   work: ["Projects", "Every project row. Tags become stack pages automatically, for example /stack/rust."],
@@ -46,7 +46,7 @@ const LABELS = {
 const LONG = /^(lede|text|blurb|quote|description|outcome|context|problem|approach|result|status|now|what)$/;
 const INLINE_LISTS = [/^work\.projects\.\d+\.tags$/, /^skills\.groups\.\d+\.items$/, /^about\.team$/, /^pipeline\.stages$/];
 const TEMPLATES = {
-  "hero.stats": { value: 0, suffix: "", label: "", linkToGithub: false },
+  "hero.stats": { value: "", suffix: "", label: "", linkToGithub: false },
   "hero.layers": { label: "", note: "" },
   "work.filters": { key: "", label: "" },
   "work.projects": { title: "", blurb: "", outcome: "", metric: { value: "", label: "" }, tags: [], category: "fullstack", year: new Date().getFullYear(), link: "", repo: "", ci: "passing", tests: 0, coverage: "", sample: false },

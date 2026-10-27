@@ -48,6 +48,49 @@ function stackIndex(S) {
   return map;
 }
 
+/* numbers the page calculates instead of storing them.
+   Write {repos}, {projects}, {stacks}, {years} or {layers} in any text or stat value. */
+const COUNT_TOKEN = /\{(repos|projects|stacks|years|layers)\}/g;
+
+async function githubRepos(S) {
+  const m = String((S.config && S.config.github) || "").match(/github\.com\/([A-Za-z0-9-]+)\/?$/);
+  if (!m) return null;
+  try {
+    let n = 0;
+    for (let page = 1; page <= 10; page++) {
+      const r = await fetch(`https://api.github.com/users/${m[1]}/repos?type=owner&per_page=100&page=${page}`);
+      if (!r.ok) return null;
+      const list = await r.json();
+      n += list.filter((x) => !x.fork).length;
+      if (list.length < 100) break;
+    }
+    return n;
+  } catch (e) { return null; }
+}
+
+async function siteCounts(S) {
+  const years = (S.experience.items || []).flatMap((it) => String(it.dates || "").match(/\b(?:19|20)\d{2}\b/g) || []).map(Number);
+  const served = window.__COUNTS__ && window.__COUNTS__.repos;
+  return {
+    repos: served != null ? served : JSON.stringify(S).includes("{repos}") ? await githubRepos(S) : null,
+    projects: (S.work.projects || []).length,
+    stacks: stackIndex(S).size,
+    years: years.length ? new Date().getFullYear() - Math.min(...years) : null,
+    layers: (S.hero.layers || []).length,
+  };
+}
+
+/* a token with no value (GitHub unreachable) is dropped, and its stat is hidden */
+function fillCounts(v, counts) {
+  if (typeof v === "string") {
+    if (!v.match(COUNT_TOKEN)) return v;
+    return v.replace(COUNT_TOKEN, (_, k) => (counts[k] == null ? "" : String(counts[k]))).replace(/ {2,}/g, " ").trim();
+  }
+  if (Array.isArray(v)) return v.map((x) => fillCounts(x, counts));
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fillCounts(x, counts)]));
+  return v;
+}
+
 async function loadSite() {
   const params = new URLSearchParams(location.search);
   if (params.has("draft")) {
@@ -88,7 +131,7 @@ function render(S, route, stacks) {
   if (more) { if (C.allProjectsUrl) more.href = safeUrl(C.allProjectsUrl); else more.closest(".more").hidden = true; }
 
   // hero stats
-  $("#heroStats").innerHTML = (S.hero.stats || []).map((s) => {
+  $("#heroStats").innerHTML = (S.hero.stats || []).filter((s) => String(s.value).trim() !== "" && !isNaN(Number(s.value))).map((s) => {
     const inner = `<span class="num" data-count="${Number(s.value) || 0}" data-suffix="${esc(s.suffix || "")}">0</span><span class="num-label">${esc(s.label)}</span>`;
     return `<li>${s.linkToGithub && C.github ? `<a href="${esc(safeUrl(C.github))}" target="_blank" rel="noopener">${inner}</a>` : inner}</li>`;
   }).join("");
@@ -604,8 +647,9 @@ function start(S, route, stacks) {
 
 /* ================================================================== */
 (async function boot() {
-  const S = await loadSite();
-  if (!S) { document.body.insertAdjacentHTML("afterbegin", '<p style="padding:2rem">Could not load site data.</p>'); return; }
+  const raw = await loadSite();
+  if (!raw) { document.body.insertAdjacentHTML("afterbegin", '<p style="padding:2rem">Could not load site data.</p>'); return; }
+  const S = fillCounts(raw, await siteCounts(raw));
   const route = stackRoute();
   const stacks = stackIndex(S);
   // stack pages open on the filtered work, so the hero and pipeline step aside

@@ -9,9 +9,9 @@
   },
   "config": {
     "email": "you@example.com",
-    "github": "https://github.com/sandwaveon-spec",
+    "github": "https://github.com/Midas20",
     "linkedin": "",
-    "allProjectsUrl": "https://shiplayer.pages.dev/work/"
+    "allProjectsUrl": "https://github.com/Midas20?tab=repositories"
   },
   "nav": {
     "work": "Work",
@@ -30,21 +30,21 @@
     "ctaSecondary": "GitHub ↗",
     "stats": [
       {
-        "value": 154,
+        "value": "{repos}",
         "suffix": "",
         "label": "public repositories on GitHub ↗",
         "linkToGithub": true
       },
       {
-        "value": 10,
-        "suffix": "+",
+        "value": "{years}",
+        "suffix": "",
         "label": "years inside product teams",
         "linkToGithub": false
       },
       {
-        "value": 3,
+        "value": "{layers}",
         "suffix": "",
-        "label": "stacks covered end to end",
+        "label": "layers covered end to end",
         "linkToGithub": false
       }
     ],
@@ -89,7 +89,7 @@
     "eyebrow": "Selected work",
     "title": "Work a team can build on",
     "lede": "Every project is a real repository: the algorithm, the schema, the tests and the UI, because a team can only build on what actually works. Each entry states the outcome it was built for. Web projects are live.",
-    "moreLabel": "See all 154 projects ↗",
+    "moreLabel": "See all {repos} projects on GitHub ↗",
     "filters": [
       {
         "key": "all",
@@ -366,7 +366,7 @@
   "experience": {
     "eyebrow": "Experience",
     "title": "Teams I’ve helped ship",
-    "lede": "A decade inside agencies, product teams and independent engagements. The constant: leave the team faster and the codebase healthier than I found them.",
+    "lede": "{years} years inside agencies, product teams and independent engagements. The constant: leave the team faster and the codebase healthier than I found them.",
     "items": [
       {
         "dates": "2022 — Present",
@@ -531,7 +531,7 @@
       "QA",
       "Leadership"
     ],
-    "githubNote": "154 public repositories, every one with tests",
+    "githubNote": "{repos} public repositories, code and tests in the open",
     "linkedinNote": "Work history and references"
   },
   "contact": {
