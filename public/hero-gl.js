@@ -123,11 +123,11 @@
     const shapeMode = shapes.length > 0 && !instant && !reduceMotion && waitFor();
     const SHAPE_SHARE = 0.45;   // the rest of the particles twinkle as stars
     function sample(paths, out) {
-      const size = Math.min(Math.min(H, innerHeight) * 0.38, W * 0.55), cx = W / 2, cy = Math.min(H, innerHeight) * 0.4;
+      const size = Math.min(Math.min(H, innerHeight) * 0.46, W * 0.62), cx = W / 2, cy = Math.min(H, innerHeight) * 0.4;
       const box = Math.ceil(size * 1.2), c2 = document.createElement("canvas"), ctx = c2.getContext("2d", { willReadFrequently: true });
       c2.width = c2.height = Math.max(1, box);
       ctx.translate((box - size) / 2, (box - size) / 2); ctx.scale(size / 24, size / 24);
-      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.lineCap = ctx.lineJoin = "round";
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.15; ctx.lineCap = ctx.lineJoin = "round";
       paths.forEach((d) => ctx.stroke(new Path2D(d)));
       const img = ctx.getImageData(0, 0, box, box).data, px = [];
       for (let y = 0; y < box; y += 2) for (let x = 0; x < box; x += 2) if (img[(y * box + x) * 4 + 3] > 120) px.push(x, y);

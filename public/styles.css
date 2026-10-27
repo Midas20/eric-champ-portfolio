@@ -910,7 +910,8 @@ a:hover .roll > span, .btn:hover .roll > span, a:focus-visible .roll > span { tr
 .pc-media { position: relative; margin: -1.4rem -1.5rem 0; aspect-ratio: 400 / 210; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--bg-2); }
 .pc-media img, .pc-cover { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.7s var(--ease); }
 .pcard:hover .pc-media img, .pcard:hover .pc-cover { transform: scale(1.04); }
-.pcard.wide .pc-media { aspect-ratio: 1000 / 300; }
+.pcard.wide .pc-media { aspect-ratio: 1000 / 210; }
+.pcard.wide .pc-media img { object-position: center 30%; }
 .cv-bg { fill: color-mix(in srgb, var(--c) 9%, var(--bg-2)); }
 .cv-grid { fill: none; stroke: color-mix(in srgb, var(--c) 10%, transparent); stroke-width: 1; }
 .cv-win { fill: color-mix(in srgb, var(--bg) 82%, transparent); stroke: color-mix(in srgb, var(--c) 30%, var(--line)); }

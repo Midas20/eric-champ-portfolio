@@ -319,8 +319,8 @@ function loaded() {
 /* ================================================================== */
 /* first visit: a change runs the pipeline to shipped, then the page opens */
 /* ================================================================== */
-// three fields of IT for this visit, in a random order (the list lives in index.html, shared with the loading screen)
-const introFields = (window.IT_FIELDS || []).map((f) => [Math.random(), f]).sort((a, b) => a[0] - b[0]).slice(0, 3).map((x) => x[1]);
+// AI first, then two other fields of IT in a random order (the list lives in index.html, shared with the loading screen)
+const introFields = ((F) => F.length ? [F[0], ...F.slice(1).map((f) => [Math.random(), f]).sort((a, b) => a[0] - b[0]).slice(0, 2).map((x) => x[1])] : [])(window.IT_FIELDS || []);
 let endIntro = () => {};
 function intro(S, role) {
   const root = document.documentElement;
@@ -768,30 +768,31 @@ function start(S, route, stacks) {
     }), { threshold: 0.1, rootMargin: "0px 0px -4% 0px" });
     // a cover drawn from the project itself: a browser frame, its result and a small chart that moves the way the result does
     const hash = (s) => [...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
-    const cover = (p) => {
+    const cover = (p, wide) => {
+      const VW = wide ? 1000 : 400, x0 = wide ? 450 : 214, x1 = VW - 20;   // the wide card gets a wider drawing, not a bigger one
       let seed = hash(p.title);
       const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
       const val = String((p.metric && p.metric.value) || "").trim(), down = /^[-−]/.test(val);
-      const pts = Array.from({ length: 9 }, (_, k) => { const t = k / 8; return [214 + t * 166, 150 - (down ? 1 - t : t) * 70 + (rnd() - 0.5) * 22]; });
+      const pts = Array.from({ length: 9 }, (_, k) => { const t = k / 8; return [x0 + t * (x1 - x0), 150 - (down ? 1 - t : t) * 70 + (rnd() - 0.5) * 22]; });
       const line = pts.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
       const kind = hash(p.category || p.title) % 2;
-      const chart = kind ? `<path class="cv-area" d="${line} L380 176 L214 176 Z"/><path class="cv-line" d="${line}"/>${pts.map(([x, y], k) => k % 2 ? "" : `<circle class="cv-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6"/>`).join("")}`
+      const chart = kind ? `<path class="cv-area" d="${line} L${x1} 176 L${x0} 176 Z"/><path class="cv-line" d="${line}"/>${pts.map(([x, y], k) => k % 2 ? "" : `<circle class="cv-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6"/>`).join("")}`
         : pts.map(([x, y], k) => `<rect class="cv-bar${k === (down ? 0 : 8) ? " hi" : ""}" x="${(x - 6).toFixed(1)}" y="${y.toFixed(1)}" width="12" height="${(176 - y).toFixed(1)}" rx="2"/>`).join("");
       const lines = [0, 1, 2, 3].map((k) => `<rect class="cv-sk" x="22" y="${132 + k * 12}" width="${(70 + rnd() * 90).toFixed(0)}" height="5" rx="2.5"/>`).join("");
       const slug = slugify(p.title) || "project";
-      return `<svg class="pc-cover" viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(p.title)}">
+      return `<svg class="pc-cover" viewBox="0 0 ${VW} 210" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(p.title)}">
         <defs><pattern id="g${p._i}" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" class="cv-grid"/></pattern></defs>
-        <rect width="400" height="210" class="cv-bg"/><rect width="400" height="210" fill="url(#g${p._i})"/>
-        <rect x="12" y="14" width="376" height="184" rx="8" class="cv-win"/><path d="M12 36H388" class="cv-rule"/>
+        <rect width="${VW}" height="210" class="cv-bg"/><rect width="${VW}" height="210" fill="url(#g${p._i})"/>
+        <rect x="12" y="14" width="${VW - 24}" height="184" rx="8" class="cv-win"/><path d="M12 36H${VW - 12}" class="cv-rule"/>
         <circle cx="26" cy="25" r="3" class="cv-dot"/><circle cx="37" cy="25" r="3" class="cv-dot"/><circle cx="48" cy="25" r="3" class="cv-dot"/>
-        <rect x="140" y="19" width="120" height="12" rx="6" class="cv-url"/><text x="200" y="28" text-anchor="middle" class="cv-url-t">${esc(slug.slice(0, 18))}.dev</text>
+        <rect x="${VW / 2 - 60}" y="19" width="120" height="12" rx="6" class="cv-url"/><text x="${VW / 2}" y="28" text-anchor="middle" class="cv-url-t">${esc(slug.slice(0, 18))}.dev</text>
         <text x="22" y="82" class="cv-big">${esc(val || "✓")}</text><text x="22" y="104" class="cv-small">${esc(((p.metric && p.metric.label) || p.title).slice(0, 34))}</text>
         ${lines}${chart}</svg>`;
     };
-    const media = (p) => `<div class="pc-media">${p.image ? `<img src="${esc(safeUrl(p.image))}" alt="" loading="lazy" decoding="async">` : cover(p)}</div>`;
+    const media = (p, wide) => `<div class="pc-media">${p.image ? `<img src="${esc(safeUrl(p.image))}" alt="" loading="lazy" decoding="async">` : cover(p, wide)}</div>`;
     const cardHTML = (p, i, wide) => `
       <article class="pcard${wide ? " wide" : ""}" style="--i:${i % 6};--c:${colorOf(p.category)}">
-        ${media(p)}
+        ${media(p, wide)}
         <div class="pc-top">${labelOf[p.category] ? `<span class="pc-cat"><i></i>${esc(labelOf[p.category])}</span>` : ""}<span class="pc-year">${esc(p.year)}</span>${p.sample ? '<span class="sample-tag">Example</span>' : ""}</div>
         <div class="pc-body">
           <div class="pc-text"><h3 ${P(p, "title")}>${esc(p.title)}</h3><p class="pc-blurb" ${P(p, "blurb")}>${esc(p.blurb)}</p></div>
