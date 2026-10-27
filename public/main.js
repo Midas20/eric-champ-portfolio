@@ -450,6 +450,7 @@ function start(S, route, stacks) {
   })();
 
   /* ---------- the stack (hero) ---------- */
+  const heroLayer = { cur: 0 };
   (function stack() {
     const scene = $("#stackScene"), data = S.hero.layers || [];
     if (!scene || !data.length) { const v = $(".hero-visual"); if (v) v.hidden = true; return; }
@@ -461,7 +462,7 @@ function start(S, route, stacks) {
     let cur = -1, hover = false, lastHoverSwitch = 0;
     const set = (i) => {
       if (i === cur) return;
-      cur = i;
+      cur = i; heroLayer.cur = i;
       plates.forEach((p, j) => { p.classList.toggle("active", j === i); p.classList.toggle("near", Math.abs(j - i) === 1); });
       idx.textContent = `${pad2(i + 1)} / ${pad2(n)}`;
       label.textContent = data[i].label; note.textContent = data[i].note || "";
@@ -491,6 +492,30 @@ function start(S, route, stacks) {
       });
       box.addEventListener("pointerleave", () => { hover = false; target.x = base.x; target.z = base.z; kick(); });
     }
+  })();
+
+  /* ---------- hero particles (WebGL): cloud → layer stack → poured into the pipeline on scroll ---------- */
+  (function particles() {
+    const canvas = $("#heroGL"), anchor = $("#stack");
+    if (!canvas || !anchor || !window.heroParticles || $(".hero").hidden || INLINE) return;
+    const ctl = window.heroParticles({
+      canvas, anchor, layers: (S.hero.layers || []).length || 5, getActive: () => heroLayer.cur, reduceMotion,
+      waitFor: () => document.documentElement.classList.contains("intro"),
+    });
+    if (!ctl) return;
+    $(".hero").classList.add("gl-on");
+    const prev = strata;
+    strata = { recolor() { prev.recolor(); ctl.recolor(); } };
+  })();
+
+  /* ---------- page particles: depth field on scroll, gathering into a check mark at Contact ---------- */
+  (function field() {
+    const canvas = $("#pageGL");
+    if (!canvas || !window.pageParticles || route || INLINE || reduceMotion) return;
+    const ctl = window.pageParticles({ canvas, goal: () => $(".bg-graph .g-goal"), hero: $(".hero") });   // gathers at the shipped node
+    if (!ctl) return;
+    const prev = strata;
+    strata = { recolor() { prev.recolor(); ctl.recolor(); } };
   })();
 
   /* ---------- pipeline band ---------- */
@@ -557,8 +582,17 @@ function start(S, route, stacks) {
     });
     links.forEach((a) => a.addEventListener("click", () => { navEl.classList.remove("open"); burger.setAttribute("aria-expanded", "false"); }));
     const sections = links.map((a) => document.getElementById(a.getAttribute("href").split("#")[1])).filter(Boolean);
+    const navBox = $("#navLinks"), ink = document.createElement("span");
+    ink.className = "nav-ink"; ink.setAttribute("aria-hidden", "true"); navBox.appendChild(ink);
+    const moveInk = () => {
+      const a = $(".nav-links a.active");
+      if (!a) { ink.style.opacity = "0"; return; }
+      ink.style.opacity = "1"; ink.style.width = `${a.offsetWidth}px`; ink.style.transform = `translateX(${a.offsetLeft}px)`;
+    };
+    addEventListener("resize", moveInk);
     const io = new IntersectionObserver((entries) => {
       entries.forEach((en) => { if (en.isIntersecting) links.forEach((a) => a.classList.toggle("active", a.getAttribute("href").endsWith(`#${en.target.id}`))); });
+      moveInk();
     }, { rootMargin: "-40% 0px -55% 0px" });
     sections.forEach((s) => io.observe(s));
   })();
@@ -1135,6 +1169,35 @@ function start(S, route, stacks) {
     if ("ResizeObserver" in window) new ResizeObserver(rebuild).observe(main);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(rebuild);
     build();
+  })();
+
+  /* ---------- headings rise in word by word ---------- */
+  (function splitHeadings() {
+    if (INLINE || reduceMotion) return;
+    $$(".section-head h2, .contact-title").forEach((h) => {
+      const text = h.textContent.trim();
+      if (!text || h.dataset.split) return;
+      h.dataset.split = "1"; h.setAttribute("aria-label", text);
+      h.innerHTML = text.split(/(\s+)/).map((w, i) => /^\s+$/.test(w) ? w : `<span class="w" aria-hidden="true"><span style="--wi:${i >> 1}">${esc(w)}</span></span>`).join("");
+    });
+  })();
+
+  /* ---------- results count up when they come into view ---------- */
+  (function countMetrics() {
+    if (reduceMotion) return;
+    const io = new IntersectionObserver((entries) => entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      io.unobserve(en.target);
+      const el = en.target, m = /^([-+−]?)(\d+(?:\.\d+)?)(\D*)$/.exec(el.textContent.trim());
+      if (!m) return;
+      const [, sign, num, suffix] = m, end = parseFloat(num), dec = (num.split(".")[1] || "").length, begin = performance.now();
+      (function tick() {
+        const f = Math.min(1, (performance.now() - begin) / 1100), v = end * (1 - Math.pow(1 - f, 3));
+        el.textContent = `${sign}${v.toFixed(dec)}${suffix}`;
+        if (f < 1) requestAnimationFrame(tick);
+      })();
+    }), { threshold: 0.6 });
+    $$(".row-metric b, #caseMetric").forEach((el) => io.observe(el));
   })();
 
   /* ---------- contact ---------- */

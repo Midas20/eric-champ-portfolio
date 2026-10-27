@@ -671,6 +671,11 @@ async function loadVersions() {
 function gate(msg) {
   $("#gate").hidden = false;
   if (msg) $("#gateMsg").textContent = msg;
+  else fetch("/api/login", { cache: "no-store" }).then((r) => r.json()).then((j) => {
+    if (j.passwordSet) return;
+    $("#gateMsg").textContent = "No password is set yet. Paste your edit key (the part after /edit/ in EDIT-LINK.txt) to open the editor, then set a password under Sign-in.";
+    $("label[for=gateKey]").textContent = "Edit key";
+  }).catch(() => {});
   $("#gateKey").focus();
 }
 /* the sign-in screen takes a password (set from the editor) or the edit key */

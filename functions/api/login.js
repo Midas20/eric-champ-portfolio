@@ -9,3 +9,8 @@ export async function onRequestPost({ request, env }) {
   const token = await signIn(env, request, body.password);
   return token ? json({ token }) : json({ error: "Wrong password." }, 401);
 }
+
+// GET /api/login  →  { passwordSet }  so the sign-in screen can say what to enter
+export async function onRequestGet({ env }) {
+  return json({ passwordSet: await passwordSet(env) });
+}

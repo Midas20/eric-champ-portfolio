@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css?v=202610272000">
+<link rel="stylesheet" href="/styles.css?v=202610280110">
 <script>
   document.documentElement.classList.add('js');
   try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
@@ -28,6 +28,7 @@
 <body>
 
 <div class="progress" id="progress" aria-hidden="true"></div>
+<canvas id="pageGL" aria-hidden="true"></canvas>
 
 <header class="nav" id="nav">
   <a class="brand" href="/#top" aria-label="Home">
@@ -58,6 +59,7 @@
   <!-- ============ HERO ============ -->
   <section class="hero">
     <canvas id="strata" aria-hidden="true"></canvas>
+    <canvas id="heroGL" aria-hidden="true"></canvas>
     <div class="wrap hero-inner">
       <div class="hero-head">
         <p class="eyebrow hero-eyebrow"><span class="status-dot"></span><span data-t="hero.eyebrow">Available to join your team</span><span class="hero-role"><span class="sep" aria-hidden="true">·</span><span data-t="meta.role"></span></span></p>
@@ -287,6 +289,7 @@
   </div>
 </footer>
 
-<script src="/main.js?v=202610272100"></script>
+<script src="/hero-gl.js?v=202610280120"></script>
+<script src="/main.js?v=202610280110"></script>
 </body>
 </html>

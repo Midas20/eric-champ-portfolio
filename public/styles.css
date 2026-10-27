@@ -770,3 +770,36 @@ a.m-val:hover, button.m-val:hover { border-color: var(--fg); }
 .inline-mode .hero-title .line-in, .inline-mode .js .section-head h2 { clip-path: none; }
 .inline-mode .bg-graph, .inline-mode .owner-edit { display: none; }
 @keyframes ie-flash { 0%, 40% { background: color-mix(in srgb, var(--accent) 28%, transparent); } 100% { background: transparent; } }
+
+/* ---------- hero particles (WebGL) ---------- */
+#heroGL { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.hero.gl-on .stack-scene { opacity: 0; }
+.hero.gl-on .stack { animation: none; }
+.hero.gl-on #strata { opacity: 0.45; }
+
+/* ---------- scroll-linked motion where the browser supports it ---------- */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .head-art { animation: art-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+    .g-item img { animation: img-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+    .section-head h2 { animation: title-track linear both; animation-timeline: view(); animation-range: entry 0% cover 40%; }
+  }
+}
+@keyframes art-drift { from { transform: translateY(36px); } to { transform: translateY(-36px); } }
+@keyframes img-drift { from { transform: scale(1.12) translateY(-4%); } to { transform: scale(1.12) translateY(4%); } }
+@keyframes title-track { from { letter-spacing: -0.01em; } to { letter-spacing: -0.03em; } }
+
+/* ---------- page particles ---------- */
+#pageGL { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+
+/* ---------- headings rise in word by word ---------- */
+.js .section-head h2[data-split], .js .contact-title[data-split] { clip-path: none; }
+h2 .w, .contact-title .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+h2 .w > span, .contact-title .w > span { display: inline-block; transform: translateY(108%); opacity: 0; transition: transform 0.9s var(--ease), opacity 0.6s var(--ease); transition-delay: calc(0.1s + var(--wi) * 0.07s); }
+.section-head.in h2 .w > span, .contact-title.in .w > span { transform: none; opacity: 1; }
+
+/* ---------- sliding highlight under the active menu item ---------- */
+.nav-links { position: relative; }
+.nav-ink { position: absolute; left: 0; bottom: -2px; height: 2px; width: 0; border-radius: 2px; background: var(--accent); opacity: 0; transition: transform 0.5s var(--ease), width 0.5s var(--ease), opacity 0.3s; pointer-events: none; }
+.nav-links:has(.nav-ink) a.active::after { transform: scaleX(0); }
+@media (max-width: 720px) { .nav-ink { display: none; } .nav-links:has(.nav-ink) a.active::after { transform: scaleX(1); } }
