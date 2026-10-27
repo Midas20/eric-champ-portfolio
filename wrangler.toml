@@ -1,5 +1,5 @@
 # Cloudflare Pages project. Static files live in public/, Functions in functions/.
-name = "portfolio"
+name = "portfolio-full"
 pages_build_output_dir = "public"
 compatibility_date = "2025-06-01"
 
@@ -7,4 +7,4 @@ compatibility_date = "2025-06-01"
 # The id is filled in by `npm run setup` (it creates the namespace in your account).
 [[kv_namespaces]]
 binding = "PORTFOLIO"
-id = "00000000000000000000000000000000"
+id = "afc12c695120462d8e3f4a94e1f3e823"

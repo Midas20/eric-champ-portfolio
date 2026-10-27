@@ -1,6 +1,6 @@
 // One-command setup and deploy to Cloudflare Pages.
 //
-//   npm run setup                          # project "portfolio"
+//   npm run setup                          # project "portfolio-full"
 //   PAGES_PROJECT=shiplayer npm run setup  # deploy into an existing project instead
 //   npm run setup -- --new-key             # replace a lost edit link with a new one
 //
