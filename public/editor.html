@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/editor.css?v=202610272010">
+<link rel="stylesheet" href="/editor.css?v=202610272100">
 </head>
 <body>
 
@@ -41,6 +41,11 @@
     <div class="side-group">
       <p class="side-h">Previous versions</p>
       <div id="history" class="history"><p class="side-note">Saved automatically each time you publish.</p></div>
+    </div>
+
+    <div class="side-group">
+      <p class="side-h">Sign-in</p>
+      <div id="signin"></div>
     </div>
 
     <div class="side-group">
@@ -75,16 +80,17 @@
 <div id="gate" class="gate" hidden>
   <form id="gateForm" class="gate-card">
     <p class="side-h">Portfolio editor</p>
-    <h1>Enter your edit key</h1>
-    <p class="side-note" id="gateMsg">Use the private link /edit/&lt;key&gt;, or paste the key here.</p>
-    <label for="gateKey" class="lbl">Edit key</label>
+    <h1>Sign in</h1>
+    <p class="side-note" id="gateMsg">Enter your password. Your edit key works here too.</p>
+    <label for="gateKey" class="lbl">Password or edit key</label>
     <input id="gateKey" type="password" autocomplete="current-password" required>
+    <label class="check"><input id="gateKeep" type="checkbox" checked>Keep me signed in on this device for 7 days</label>
     <button class="btn primary" type="submit">Open editor</button>
   </form>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script src="/editor.js?v=202610272000"></script>
+<script src="/editor.js?v=202610272100"></script>
 </body>
 </html>

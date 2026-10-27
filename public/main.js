@@ -260,7 +260,7 @@ function enableInline(raw, S) {
 function ownerShortcut() {
   let url = "";
   try { url = localStorage.getItem("editor-url") || ""; } catch (e) {}
-  if (!/^\/edit\/[A-Za-z0-9_-]{16,}$/.test(url) || window.parent !== window) return;
+  if (!(url === "/admin" || /^\/edit\/[A-Za-z0-9_-]{16,}$/.test(url)) || window.parent !== window) return;
   const a = document.createElement("a");
   a.className = "owner-edit"; a.href = url; a.textContent = "Edit"; a.title = "Open the editor (Ctrl+Shift+E). Only shown on this device.";
   document.body.appendChild(a);

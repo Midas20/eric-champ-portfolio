@@ -12,7 +12,7 @@ const slugify = (s) => String(s).toLowerCase().replace(/\+/g, "-plus").replace(/
 let KEY = (() => {
   const m = location.pathname.match(/^\/edit\/([^/]+)/);
   if (m) return decodeURIComponent(m[1]);
-  try { return sessionStorage.getItem("edit-key") || ""; } catch (e) { return ""; }
+  try { return localStorage.getItem("editor-session") || sessionStorage.getItem("edit-key") || ""; } catch (e) { return ""; }
 })();
 const api = (path, opts = {}) => fetch(path, { cache: "no-store", ...opts, headers: { "content-type": "application/json", authorization: `Bearer ${KEY}`, ...(opts.headers || {}) } });
 
@@ -576,13 +576,13 @@ $("#btnKey").addEventListener("click", async (e) => {
   if (!r.ok || !j.key) return toast(j.error || "The link could not be changed.", true);
   KEY = j.key;
   try { sessionStorage.setItem("edit-key", KEY); } catch (err) {}
-  history.replaceState(null, "", `/edit/${KEY}`);
+  if (location.pathname.startsWith("/edit/")) history.replaceState(null, "", `/edit/${KEY}`);
   rememberDevice();
   showLink(`${location.origin}/edit/${KEY}`);
 });
 
 function rememberDevice() {
-  try { if (localStorage.getItem("editor-remember") !== "0") localStorage.setItem("editor-url", `/edit/${KEY}`); } catch (e) {}
+  try { if (localStorage.getItem("editor-remember") !== "0") localStorage.setItem("editor-url", KEY.startsWith("s.") ? "/admin" : `/edit/${KEY}`); } catch (e) {}
   renderDevice();
 }
 function renderDevice() {
@@ -596,7 +596,7 @@ $("#device").addEventListener("click", (e) => {
   const b = e.target.closest("[data-device]"); if (!b) return;
   try {
     if (b.dataset.device === "forget") { localStorage.removeItem("editor-url"); localStorage.setItem("editor-remember", "0"); }
-    else { localStorage.removeItem("editor-remember"); localStorage.setItem("editor-url", `/edit/${KEY}`); }
+    else { localStorage.removeItem("editor-remember"); localStorage.setItem("editor-url", KEY.startsWith("s.") ? "/admin" : `/edit/${KEY}`); }
   } catch (err) {}
   renderDevice();
 });
@@ -617,6 +617,47 @@ $("#btnImages").addEventListener("click", async (e) => {
   toast(`Deleted ${unused.length} unused image${unused.length > 1 ? "s" : ""}. Older versions that used them will show them missing.`);
 });
 
+/* ---------- sign-in: a short address and a password ---------- */
+async function renderSignin() {
+  const box = $("#signin"), url = `${location.origin}/admin`;
+  if (!online) { box.innerHTML = `<p class="side-note">Password sign-in needs the Cloudflare server.</p>`; return; }
+  const r = await api("/api/password").catch(() => null);
+  const st = r && r.ok ? await r.json() : { set: false, min: 10 };
+  box.innerHTML = `<p class="side-note">Open <a href="/admin" target="_blank" rel="noopener"><code>${esc(url)}</code></a> on any device and sign in with ${st.set ? "your password" : "a password you set here"}.</p>
+    <div class="pw-row"><input id="pwNew" type="password" autocomplete="new-password" placeholder="${st.set ? "New password" : `Password, ${st.min}+ characters`}" aria-label="Password">
+    <button class="btn" type="button" id="pwSet">${st.set ? "Change" : "Set"}</button></div>
+    <div class="pw-links"><button class="link" type="button" data-copy-url="${esc(url)}">Copy address</button>
+    ${st.set ? '<button class="link danger" type="button" id="pwClear">Remove password</button>' : ""}
+    ${KEY.startsWith("s.") ? '<button class="link" type="button" id="pwOut">Sign out</button>' : ""}</div>`;
+}
+$("#signin").addEventListener("click", async (e) => {
+  const t = e.target;
+  if (t.dataset.copyUrl) { navigator.clipboard.writeText(t.dataset.copyUrl).then(() => toast("Address copied."), () => toast(t.dataset.copyUrl)); return; }
+  if (t.id === "pwSet") {
+    const pw = $("#pwNew").value;
+    const r = await api("/api/password", { method: "POST", body: JSON.stringify({ password: pw }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return toast(j.error || "The password could not be saved.", true);
+    // every other device is signed out; this one continues with a fresh session if it was using one
+    if (KEY.startsWith("s.")) { KEY = j.token; try { localStorage.getItem("editor-session") ? localStorage.setItem("editor-session", KEY) : sessionStorage.setItem("edit-key", KEY); } catch (err) {} }
+    toast("Password saved. Sign in at /admin with it from now on.");
+    renderSignin();
+  }
+  if (t.id === "pwClear") {
+    if (!t.dataset.confirm) { t.dataset.confirm = "1"; t.textContent = "Click again to remove"; setTimeout(() => { delete t.dataset.confirm; t.textContent = "Remove password"; }, 3000); return; }
+    const r = await api("/api/password", { method: "DELETE" });
+    if (!r.ok) return toast("The password could not be removed.", true);
+    toast("Password removed. /admin now accepts only the edit key.");
+    if (KEY.startsWith("s.")) { try { localStorage.removeItem("editor-session"); sessionStorage.removeItem("edit-key"); } catch (err) {} location.reload(); return; }
+    renderSignin();
+  }
+  if (t.id === "pwOut") {
+    await api("/api/logout", { method: "POST" }).catch(() => {});
+    try { localStorage.removeItem("editor-session"); sessionStorage.removeItem("edit-key"); localStorage.removeItem("editor-url"); } catch (err) {}
+    location.href = "/admin";
+  }
+});
+
 /* ---------- boot ---------- */
 async function loadVersions() {
   try {
@@ -632,10 +673,36 @@ function gate(msg) {
   if (msg) $("#gateMsg").textContent = msg;
   $("#gateKey").focus();
 }
-$("#gateForm").addEventListener("submit", (e) => {
+/* the sign-in screen takes a password (set from the editor) or the edit key */
+const looksLikeKey = (v) => /^[A-Za-z0-9_-]{30,}$/.test(v);
+async function tryPassword(v, keep) {
+  const r = await fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: v }) }).catch(() => null);
+  if (!r) return "offline";
+  if (r.status === 429) return "blocked";
+  if (!r.ok) return r.status === 409 ? "nopassword" : "wrong";
+  KEY = (await r.json()).token;
+  try { (keep ? localStorage : sessionStorage).setItem(keep ? "editor-session" : "edit-key", KEY); } catch (e) {}
+  return "ok";
+}
+async function keyWorks(v) {
+  const r = await fetch("/api/history", { cache: "no-store", headers: { authorization: `Bearer ${v}` } }).catch(() => null);
+  return !r || r.ok;   // offline (static preview): let boot() decide
+}
+$("#gateForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  KEY = $("#gateKey").value.trim();
-  try { sessionStorage.setItem("edit-key", KEY); } catch (err) {}
+  const v = $("#gateKey").value.trim(), keep = $("#gateKeep").checked, btn = $("#gateForm button");
+  btn.disabled = true; btn.textContent = "Checking…";
+  let ok = false, msg = "Wrong password or key.";
+  if (looksLikeKey(v) && (await keyWorks(v))) { KEY = v; try { sessionStorage.setItem("edit-key", v); } catch (err) {} ok = true; }
+  else {
+    const res = await tryPassword(v, keep);
+    if (res === "ok") ok = true;
+    else if (res === "blocked") msg = "Too many attempts. Wait 15 minutes and try again.";
+    else if (res === "nopassword") msg = "No password is set yet. Open your private edit link once and set one under Sign-in.";
+    else if (res === "offline") { KEY = v; ok = true; }
+  }
+  btn.disabled = false; btn.textContent = "Open editor";
+  if (!ok) { $("#gateMsg").textContent = msg; $("#gateKey").select(); return; }
   $("#gate").hidden = true; boot();
 });
 
@@ -647,11 +714,15 @@ async function boot() {
   }
   if (!doc) { $("#panel").innerHTML = `<p class="err">The site data could not be loaded.</p>`; return; }
   const access = await loadVersions();
-  if (access === "denied") { try { sessionStorage.removeItem("edit-key"); } catch (e) {} return gate("That key was rejected. Check the link or paste the key again."); }
+  if (access === "denied") {
+    try { sessionStorage.removeItem("edit-key"); localStorage.removeItem("editor-session"); } catch (e) {}
+    return gate(KEY.startsWith("s.") ? "Your sign-in has expired. Sign in again." : "That key was rejected. Check the link, or sign in with your password.");
+  }
   draft = doc; saved = JSON.stringify(doc);
   if (!draft[section]) section = Object.keys(draft).find((k) => !k.startsWith("_"));
   renderAll();
   if (access === "ok") rememberDevice(); else renderDevice();
+  renderSignin();
   if (access === "offline") toast("Local mode: you can edit and preview, but publishing needs the Cloudflare server.", true);
 }
 boot();

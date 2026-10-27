@@ -168,3 +168,10 @@ body.split .panel { padding-right: 1.2rem; }
 .linkbox h2 { margin: 0 0 0.4rem; font-size: 1.2rem; font-weight: 500; }
 .linkbox code { display: block; margin: 1rem 0; padding: 0.7rem; border-radius: var(--r); background: var(--bg); font: 0.82rem var(--mono); overflow-wrap: anywhere; }
 .linkbox .opt { display: flex; gap: 0.5rem; }
+
+/* sign-in */
+.pw-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.4rem; }
+.pw-row input { padding: 0.4rem 0.6rem; }
+.pw-links { display: flex; flex-wrap: wrap; gap: 0.2rem 0.9rem; }
+#signin code { font: 0.74rem var(--mono); color: var(--accent); overflow-wrap: anywhere; }
+.gate-card .check { margin: 0.2rem 0 0.4rem; font-size: 0.85rem; color: var(--muted); }

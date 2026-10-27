@@ -25,6 +25,7 @@ All text and data is one JSON document. After the first publish it is stored in 
 | `/for/<slug>` | A version tailored by a Focus preset, e.g. `/for/ai`: matching projects, a fitting title. Kept out of search engines |
 | `/img/<id>` | An image uploaded from the editor |
 | `/edit/<your key>` | The editor. Any other key returns 404 |
+| `/admin` | The editor's sign-in page: your password (set it once under *Sign-in* in the editor) or the edit key |
 | `/sitemap.xml` | Home, `/stack` and every stack page, generated from the data |
 
 Stack pages are generated automatically from project **tags** and **skills**. Add a tag in the editor,
